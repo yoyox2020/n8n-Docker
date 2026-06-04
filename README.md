@@ -32,6 +32,33 @@ docker run -it --rm --name n8n -p 5678:5678 -v n8n_data:/home/node/.n8n docker.n
 
 Access the editor at http://localhost:5678
 
+### Docker Compose troubleshooting
+
+If you run:
+
+```bash
+docker compose up
+```
+
+and get:
+
+```text
+no configuration file provided: not found
+```
+
+Docker Compose cannot find a Compose file in your current directory.
+
+Use one of these fixes:
+
+```bash
+# Run with an explicit compose file
+docker compose -f .devcontainer/docker-compose.yml up
+
+# Or locate available compose files first
+# PowerShell
+Get-ChildItem -Path . -Recurse -Include *compose*.yml,*compose*.yaml,*docker-compose*.yml,*docker-compose*.yaml
+```
+
 ## Resources
 
 - 📚 [Documentation](https://docs.n8n.io)

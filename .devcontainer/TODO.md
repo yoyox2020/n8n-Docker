@@ -1,0 +1,4 @@
+- [x] Restore `.devcontainer/docker-compose.yml` to devcontainer mode (`command: sleep infinity`, no ports).
+- [x] Create `.devcontainer/docker-compose.n8n-run.yml` for actual n8n runtime with postgres and port 5678 exposed.
+- [ ] Start runtime compose stack and verify container status/ports.
+- [ ] Verify n8n logs and confirm browser URL access instructions.
