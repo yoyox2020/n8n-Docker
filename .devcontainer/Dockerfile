@@ -12,4 +12,6 @@ RUN mkdir /workspaces && chown node:node /workspaces
 RUN corepack enable
 
 USER node
-RUN mkdir -p ~/.pnpm-store && pnpm config set store-dir ~/.pnpm-store --global
+ENV PNPM_HOME=/home/node/.local/share/pnpm
+ENV PNPM_STORE_PATH=/home/node/.pnpm-store
+RUN mkdir -p /home/node/.pnpm-store
