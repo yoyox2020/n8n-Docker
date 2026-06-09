@@ -1,0 +1,11 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import type { DOMElementInfo } from '../../core/types';
+export declare function createOverlayRectangle(elementId: number, info: DOMElementInfo, container: HTMLDivElement, setSelectedId: (id: number | null) => void, setUnSelectedId: (id: number | null) => void, setClickedId: (id: number | null) => void, zIndex: number): WeakRef<Element> | null;

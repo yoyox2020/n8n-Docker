@@ -10,6 +10,8 @@ import {
 	SharedCredentialsRepository,
 	SharedWorkflowRepository,
 	type ProjectListOptions,
+	SubscriptionRepository,
+	NodePermissionRepository,
 } from '@n8n/db';
 import { Container, Service } from '@n8n/di';
 import {
@@ -70,6 +72,10 @@ export class ProjectService {
 		private readonly sharedWorkflowRepository: SharedWorkflowRepository,
 		private readonly projectRepository: ProjectRepository,
 		private readonly projectRelationRepository: ProjectRelationRepository,
+
+		private readonly subscriptionRepository: SubscriptionRepository,
+		private readonly nodePermissionRepository: NodePermissionRepository,
+
 		private readonly roleService: RoleService,
 		private readonly sharedCredentialsRepository: SharedCredentialsRepository,
 		private readonly licenseState: LicenseState,
@@ -118,7 +124,13 @@ export class ProjectService {
 			Container.get(AgentKnowledgeService),
 		);
 	}
+	async getProjectSubscription(projectId: string) {
+		return await this.subscriptionRepository.findByProject(projectId);
+	}
 
+	async getAllowedNodes(projectId: string) {
+		return await this.nodePermissionRepository.getAllowedNodes(projectId);
+	}
 	async deleteProject(
 		user: User,
 		projectId: string,

@@ -1,0 +1,10 @@
+import { DOMElementStats, DOMObserveCallback } from './types';
+export declare class DOMObserver {
+    #private;
+    constructor();
+    register(callback: DOMObserveCallback): void;
+    startMonitoring(): void;
+    stopMonitoring(): void;
+    getDOMElements(): Array<WeakRef<Element>>;
+    getStats(): DOMElementStats;
+}

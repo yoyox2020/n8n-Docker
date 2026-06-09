@@ -1,0 +1,81 @@
+import { getGitDir, logDebug, setupCore, teardownCore, optimizeFunction, mongoMeasurement, InstrumentHooks } from '@codspeed/core';
+import { NodeBenchmarkRunner } from 'vitest/runners';
+import { getHooks, getBenchFn } from 'vitest/suite';
+import path from 'path';
+
+function getSuiteHooks(suite, name) {
+  return getHooks(suite)?.[name] ?? [];
+}
+async function callSuiteHook(suite, currentTask, name) {
+  if (name === "beforeEach" && suite?.suite) {
+    await callSuiteHook(suite.suite, currentTask, name);
+  }
+  const hooks = getSuiteHooks(suite, name);
+  await Promise.all(hooks.map((fn) => fn()));
+  if (name === "afterEach" && suite?.suite) {
+    await callSuiteHook(suite.suite, currentTask, name);
+  }
+}
+function patchRootSuiteWithFullFilePath(suite) {
+  const gitDir = getGitDir(suite.file.filepath);
+  if (gitDir === void 0) {
+    throw new Error("Could not find a git repository");
+  }
+  suite.name = path.relative(gitDir, suite.file.filepath);
+}
+function isVitestTaskBenchmark(task) {
+  return task.type === "test" && task.meta.benchmark === true;
+}
+
+const currentFileName = typeof __filename === "string" ? __filename : new URL("analysis.mjs", import.meta.url).pathname;
+function logCodSpeed(message) {
+  console.log(`[CodSpeed] ${message}`);
+}
+async function runAnalysisBench(benchmark, suite, currentSuiteName) {
+  const uri = `${currentSuiteName}::${benchmark.name}`;
+  const fn = getBenchFn(benchmark);
+  await optimizeFunction(async () => {
+    await callSuiteHook(suite, benchmark, "beforeEach");
+    await fn();
+    await callSuiteHook(suite, benchmark, "afterEach");
+  });
+  await callSuiteHook(suite, benchmark, "beforeEach");
+  await mongoMeasurement.start(uri);
+  global.gc?.();
+  await async function __codspeed_root_frame__() {
+    InstrumentHooks.startBenchmark();
+    await fn();
+    InstrumentHooks.stopBenchmark();
+    InstrumentHooks.setExecutedBenchmark(process.pid, uri);
+  }();
+  await mongoMeasurement.stop(uri);
+  await callSuiteHook(suite, benchmark, "afterEach");
+  logCodSpeed(`${uri} done`);
+}
+async function runAnalysisBenchmarkSuite(suite, parentSuiteName) {
+  const currentSuiteName = parentSuiteName ? parentSuiteName + "::" + suite.name : suite.name;
+  await callSuiteHook(suite, suite, "beforeAll");
+  for (const task of suite.tasks) {
+    if (task.mode !== "run")
+      continue;
+    if (isVitestTaskBenchmark(task)) {
+      await runAnalysisBench(task, suite, currentSuiteName);
+    } else if (task.type === "suite") {
+      await runAnalysisBenchmarkSuite(task, currentSuiteName);
+    }
+  }
+  await callSuiteHook(suite, suite, "afterAll");
+}
+class AnalysisRunner extends NodeBenchmarkRunner {
+  async runSuite(suite) {
+    logDebug(`PROCESS PID: ${process.pid} in ${currentFileName}`);
+    setupCore();
+    patchRootSuiteWithFullFilePath(suite);
+    logCodSpeed(`running suite ${suite.name}`);
+    await runAnalysisBenchmarkSuite(suite);
+    logCodSpeed(`running suite ${suite.name} done`);
+    teardownCore();
+  }
+}
+
+export { AnalysisRunner, AnalysisRunner as default };

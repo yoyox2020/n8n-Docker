@@ -1,7 +1,7 @@
 
 <p>![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
 
-# n8n - Secure Workflow Automation for Technical Teams modified by yy
+# n8n - Secure Workflow Automation for Technical Teams
 
 n8n is a workflow automation platform that gives technical teams the flexibility of code with the speed of no-code. With 400+ integrations, native AI capabilities, and a fair-code license, n8n lets you build powerful automations while maintaining full control over your data and deployments.
 
@@ -32,7 +32,7 @@ docker run -it --rm --name n8n -p 5678:5678 -v n8n_data:/home/node/.n8n docker.n
 
 Access the editor at http://localhost:5678
 
-### Docker Compose troubleshooting
+### Docker Compose troubleshooting (devcontainer runtime)
 
 If you run:
 
@@ -48,16 +48,48 @@ no configuration file provided: not found
 
 Docker Compose cannot find a Compose file in your current directory.
 
-Use one of these fixes:
+Use the runtime compose file explicitly:
 
 ```bash
-# Run with an explicit compose file
-docker compose -f .devcontainer/docker-compose.yml up
+docker compose -f .devcontainer/docker-compose.n8n-run.yml up -d
+```
 
-# Or locate available compose files first
-# PowerShell
+Check services:
+
+```bash
+docker compose -f .devcontainer/docker-compose.n8n-run.yml ps
+docker compose -f .devcontainer/docker-compose.n8n-run.yml logs --tail=120 n8n
+```
+
+Expected log line when healthy:
+
+```text
+Editor is now accessible via:
+http://localhost:5678
+```
+
+If logs show `password authentication failed for user "n8n"`, fix Postgres role/database ownership:
+
+```bash
+docker compose -f .devcontainer/docker-compose.n8n-run.yml exec postgres psql -U postgres -d postgres -c "CREATE ROLE n8n WITH LOGIN PASSWORD 'password';"
+docker compose -f .devcontainer/docker-compose.n8n-run.yml exec postgres psql -U postgres -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE n8n TO n8n;"
+docker compose -f .devcontainer/docker-compose.n8n-run.yml exec postgres psql -U postgres -d postgres -c "ALTER DATABASE n8n OWNER TO n8n;"
+docker compose -f .devcontainer/docker-compose.n8n-run.yml restart n8n
+```
+
+To locate compose files in this repository (PowerShell):
+
+```powershell
 Get-ChildItem -Path . -Recurse -Include *compose*.yml,*compose*.yaml,*docker-compose*.yml,*docker-compose*.yaml
 ```
+
+About this line:
+
+```text
+Debug this Compose error with Gordon → docker ai "help me fix this compose error"
+```
+
+It is an optional Docker CLI help suggestion, not the root error itself.
 
 ## Resources
 

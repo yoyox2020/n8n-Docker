@@ -1,0 +1,22 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import { Config } from '../core/types';
+export declare const performanceConfig: {
+    scanIntervalMs: number;
+    maxComponentStackDepth: number;
+    memoryMeasurementIntervalMs: number;
+};
+export declare const featureFlags: {
+    enableMutationObserver: boolean;
+    enableMemoryTracking: boolean;
+    enableComponentStack: boolean;
+    enableConsoleLogs: any;
+};
+export declare const config: Config;

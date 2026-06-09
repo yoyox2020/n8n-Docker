@@ -1,0 +1,1 @@
+{"version":3,"file":"PackageInfoLoader.d.ts","sourceRoot":"","sources":["../../src/lib/PackageInfoLoader.ts"],"names":[],"mappings":"AAeA,gBAAgB;AAChB,qBAAa,iBAAiB;IAC5B,OAAO,CAAC,MAAM,CAAC,kBAAkB,CAA0B;mBAEtC,QAAQ;WA0BT,eAAe,CAAC,gBAAgB,EAAE,MAAM,GAAG,OAAO,CAAC,IAAI,CAAC;CAO7E"}

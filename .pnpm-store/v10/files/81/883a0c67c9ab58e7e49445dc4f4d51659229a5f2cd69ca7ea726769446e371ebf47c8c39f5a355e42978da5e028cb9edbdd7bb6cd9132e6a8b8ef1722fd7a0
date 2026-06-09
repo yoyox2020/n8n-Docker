@@ -1,0 +1,27 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import type { DOMElementInfo, Nullable } from '../core/types';
+import DOMElementVisualizer from './dom-element-visualizer';
+export type VisualizerData = {
+    detachedDOMElementsCount: number;
+    totalDOMElementsCount: number;
+    selectedElementId: Nullable<number>;
+    pinnedElementId: Nullable<number>;
+    selectedReactComponentStack: Array<string>;
+    setPinnedElementId: (elementId: Nullable<number>) => void;
+};
+export type DateUpdateCallback = (data: VisualizerData) => void;
+export type RegisterDataUpdateCallback = (cb: DateUpdateCallback) => void;
+export default class DOMElementVisualizerInteractive extends DOMElementVisualizer {
+    #private;
+    constructor();
+    repaint(domElementInfoList: Array<DOMElementInfo>): void;
+    cleanup(): void;
+}

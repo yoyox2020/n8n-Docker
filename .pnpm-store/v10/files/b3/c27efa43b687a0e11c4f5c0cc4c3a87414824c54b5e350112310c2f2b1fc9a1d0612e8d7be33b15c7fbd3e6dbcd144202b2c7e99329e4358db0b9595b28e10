@@ -1,0 +1,11 @@
+export declare const distPath: string;
+export declare const srcPath: string;
+export declare function wait(timeoutInMs: number): Promise<void>;
+export declare const libBundleFile = "memlens.lib.bundle.js";
+export declare const libBundleFilePath: string;
+export declare const libBundleMinFile = "memlens.lib.bundle.min.js";
+export declare const libBundleMinFilePath: string;
+export declare const runBundleFile = "memlens.run.bundle.js";
+export declare const runBundleFilePath: string;
+export declare const runBundleMinFile = "memlens.run.bundle.min.js";
+export declare const runBundleMinFilePath: string;

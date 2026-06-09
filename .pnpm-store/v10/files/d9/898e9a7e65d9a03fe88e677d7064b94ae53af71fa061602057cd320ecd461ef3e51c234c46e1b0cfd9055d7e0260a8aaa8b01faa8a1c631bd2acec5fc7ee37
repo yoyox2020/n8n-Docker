@@ -1,0 +1,10 @@
+import { Reporter, FullConfig, Suite, TestError } from '@playwright/test/reporter';
+
+declare class DiscoveryReporter implements Reporter {
+    onBegin(config: FullConfig<{}, {}>, suite: Suite): void;
+    onError(error: TestError): void;
+    private getFullTestSuite;
+    printsToStdio(): boolean;
+}
+
+export { DiscoveryReporter, DiscoveryReporter as default };

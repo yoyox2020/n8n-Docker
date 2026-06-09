@@ -1,0 +1,177 @@
+import { getGitDir, msToNs, calculateQuantiles, msToS, setupCore, writeWalltimeResults, InstrumentHooks } from '@codspeed/core';
+import { NodeBenchmarkRunner } from 'vitest/runners';
+import path from 'path';
+import { getBenchOptions } from 'vitest/suite';
+
+function patchRootSuiteWithFullFilePath(suite) {
+  const gitDir = getGitDir(suite.file.filepath);
+  if (gitDir === void 0) {
+    throw new Error("Could not find a git repository");
+  }
+  suite.name = path.relative(gitDir, suite.file.filepath);
+}
+function isVitestTaskBenchmark(task) {
+  return task.type === "test" && task.meta.benchmark === true;
+}
+
+async function extractBenchmarkResults(suite, parentPath = "") {
+  const benchmarks = [];
+  const currentPath = parentPath ? `${parentPath}::${suite.name}` : suite.name;
+  for (const task of suite.tasks) {
+    if (isVitestTaskBenchmark(task) && task.result?.state === "pass") {
+      const benchmark = await processBenchmarkTask(task, currentPath);
+      if (benchmark) {
+        benchmarks.push(benchmark);
+      }
+    } else if (task.type === "suite") {
+      const nestedBenchmarks = await extractBenchmarkResults(task, currentPath);
+      benchmarks.push(...nestedBenchmarks);
+    }
+  }
+  return benchmarks;
+}
+async function processBenchmarkTask(task, suitePath) {
+  const uri = `${suitePath}::${task.name}`;
+  const result = task.result;
+  if (!result) {
+    console.warn(`    \u26A0 No result data available for ${uri}`);
+    return null;
+  }
+  try {
+    const benchOptions = getBenchOptions(task);
+    const stats = convertVitestResultToBenchmarkStats(result, benchOptions);
+    if (stats === null) {
+      console.log(`    \u2714 No walltime data to collect for ${uri}`);
+      return null;
+    }
+    const coreBenchmark = {
+      name: task.name,
+      uri,
+      config: {
+        max_rounds: benchOptions.iterations ?? null,
+        max_time_ns: benchOptions.time ? msToNs(benchOptions.time) : null,
+        min_round_time_ns: null,
+        // tinybench does not have an option for this
+        warmup_time_ns: benchOptions.warmupIterations !== 0 && benchOptions.warmupTime ? msToNs(benchOptions.warmupTime) : null
+      },
+      stats
+    };
+    console.log(`    \u2714 Collected walltime data for ${uri}`);
+    return coreBenchmark;
+  } catch (error) {
+    console.warn(`    \u26A0 Failed to process benchmark result for ${uri}:`, error);
+    return null;
+  }
+}
+function convertVitestResultToBenchmarkStats(result, benchOptions) {
+  const benchmark = result.benchmark;
+  if (!benchmark) {
+    throw new Error("No benchmark data available in result");
+  }
+  const { totalTime, min, max, mean, sd, samples } = benchmark;
+  const sortedTimesNs = samples.map(msToNs).sort((a, b) => a - b);
+  const meanNs = msToNs(mean);
+  const stdevNs = msToNs(sd);
+  if (sortedTimesNs.length == 0) {
+    return null;
+  }
+  const { q1_ns, q3_ns, median_ns, iqr_outlier_rounds, stdev_outlier_rounds } = calculateQuantiles({ meanNs, stdevNs, sortedTimesNs });
+  return {
+    min_ns: msToNs(min),
+    max_ns: msToNs(max),
+    mean_ns: meanNs,
+    stdev_ns: stdevNs,
+    q1_ns,
+    median_ns,
+    q3_ns,
+    total_time: msToS(totalTime),
+    iter_per_round: 1,
+    // as there is only one round in tinybench, we define that there were n rounds of 1 iteration
+    rounds: sortedTimesNs.length,
+    iqr_outlier_rounds,
+    stdev_outlier_rounds,
+    warmup_iters: benchOptions.warmupIterations ?? 0
+  };
+}
+
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
+};
+class WalltimeRunner extends NodeBenchmarkRunner {
+  constructor() {
+    super(...arguments);
+    __publicField(this, "isTinybenchHookedWithCodspeed", false);
+    __publicField(this, "suiteUris", /* @__PURE__ */ new Map());
+    /// Suite ID of the currently running suite, to allow constructing the URI in the context of tinybench tasks
+    __publicField(this, "currentSuiteId", null);
+  }
+  async runSuite(suite) {
+    patchRootSuiteWithFullFilePath(suite);
+    this.populateBenchmarkUris(suite);
+    setupCore();
+    await super.runSuite(suite);
+    const benchmarks = await extractBenchmarkResults(suite);
+    if (benchmarks.length > 0) {
+      writeWalltimeResults(benchmarks);
+      console.log(
+        `[CodSpeed] Done collecting walltime data for ${benchmarks.length} benches.`
+      );
+    } else {
+      console.warn(
+        `[CodSpeed] No benchmark results found after suite execution`
+      );
+    }
+  }
+  populateBenchmarkUris(suite, parentPath = "") {
+    const currentPath = parentPath !== "" ? `${parentPath}::${suite.name}` : suite.name;
+    for (const task of suite.tasks) {
+      if (task.type === "suite") {
+        this.suiteUris.set(task.id, `${currentPath}::${task.name}`);
+        this.populateBenchmarkUris(task, currentPath);
+      }
+    }
+  }
+  async importTinybench() {
+    const tinybench = await super.importTinybench();
+    if (this.isTinybenchHookedWithCodspeed) {
+      return tinybench;
+    }
+    this.isTinybenchHookedWithCodspeed = true;
+    const originalRun = tinybench.Task.prototype.run;
+    const getSuiteUri = () => {
+      if (this.currentSuiteId === null) {
+        throw new Error("currentSuiteId is null - something went wrong");
+      }
+      return this.suiteUris.get(this.currentSuiteId) || "";
+    };
+    tinybench.Task.prototype.run = async function() {
+      const { fn } = this;
+      const suiteUri = getSuiteUri();
+      function __codspeed_root_frame__() {
+        return fn();
+      }
+      this.fn = __codspeed_root_frame__;
+      InstrumentHooks.startBenchmark();
+      await originalRun.call(this);
+      InstrumentHooks.stopBenchmark();
+      const uri = `${suiteUri}::${this.name}`;
+      InstrumentHooks.setExecutedBenchmark(process.pid, uri);
+      return this;
+    };
+    return tinybench;
+  }
+  // Allow tinybench to retrieve the path to the currently running suite
+  async onTaskUpdate(_, events) {
+    events.map((event) => {
+      const [id, eventName] = event;
+      if (eventName === "suite-prepare") {
+        this.currentSuiteId = id;
+      }
+    });
+  }
+}
+
+export { WalltimeRunner, WalltimeRunner as default };

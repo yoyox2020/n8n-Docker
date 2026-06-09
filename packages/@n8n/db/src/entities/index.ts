@@ -49,7 +49,12 @@ import { WorkflowPublishedVersion } from './workflow-published-version';
 import { WorkflowStatistics } from './workflow-statistics';
 import { WorkflowTagMapping } from './workflow-tag-mapping';
 
+import { Subscription } from './subscription';
+import { NodePermission } from './node-permission';
+
 export {
+	Subscription,
+	NodePermission,
 	InvalidAuthToken,
 	AiBuilderTemporaryWorkflow,
 	ProcessedData,
@@ -147,4 +152,6 @@ export const entities = {
 	Role,
 	ProjectSecretsProviderAccess,
 	SecretsProviderConnection,
+	Subscription,
+	NodePermission,
 };

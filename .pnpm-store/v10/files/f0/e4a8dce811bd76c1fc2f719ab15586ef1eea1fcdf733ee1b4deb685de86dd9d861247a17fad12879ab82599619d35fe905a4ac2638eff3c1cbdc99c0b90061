@@ -1,0 +1,33 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import type { Fiber } from 'react-reconciler';
+type EventListenerEntry = {
+    type: string;
+    cb: WeakRef<EventListenerOrEventListenerObject>;
+    options?: boolean | AddEventListenerOptions;
+    fiber?: WeakRef<Fiber>;
+};
+type DetachedListenerGroup = {
+    type: string;
+    count: number;
+    entries: WeakRef<EventListenerEntry>[];
+};
+export declare class EventListenerTracker {
+    #private;
+    private static instance;
+    private constructor();
+    static getInstance(): EventListenerTracker;
+    addListener(el: EventTarget, type: string, cb: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+    removeListener(el: EventTarget, type: string, cb: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+    scan(getComponentName: (elRef: WeakRef<Element>) => string): Map<string, DetachedListenerGroup[]>;
+    getDetachedListeners(): Map<string, DetachedListenerGroup[]>;
+    destroy(): void;
+}
+export {};

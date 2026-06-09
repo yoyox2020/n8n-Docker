@@ -16,6 +16,7 @@ import type { SharedCredentials } from './shared-credentials';
 import type { SharedWorkflow } from './shared-workflow';
 import { User } from './user';
 import type { Variables } from './variables';
+import type { Subscription } from './subscription';
 
 @Entity()
 export class Project extends WithTimestampsAndStringId {
@@ -58,4 +59,7 @@ export class Project extends WithTimestampsAndStringId {
 	@ManyToOne('User', { onDelete: 'SET NULL' })
 	@JoinColumn({ name: 'creatorId' })
 	creator?: Relation<User>;
+
+	@OneToMany('Subscription', 'project')
+	subscriptions: Subscription[];
 }

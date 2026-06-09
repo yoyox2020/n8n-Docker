@@ -1,0 +1,12 @@
+import { definePreviewAddon } from 'storybook/internal/csf';
+
+// src/index.ts
+
+// src/preview.ts
+var preview = {};
+var preview_default = preview;
+
+// src/index.ts
+var index_default = () => definePreviewAddon(preview_default);
+
+export { index_default as default };

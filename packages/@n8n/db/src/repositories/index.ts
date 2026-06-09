@@ -58,3 +58,6 @@ export { WebhookRepository } from './webhook.repository';
 export { UserRepository } from './user.repository';
 export { SecretsProviderConnectionRepository } from './secrets-provider-connection.repository.ee';
 export { ProjectSecretsProviderAccessRepository } from './project-secrets-provider-access.repository.ee';
+
+export { SubscriptionRepository } from './subscription.repository';
+export { NodePermissionRepository } from './node-permission.repository';

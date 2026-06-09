@@ -1,0 +1,17 @@
+// src/preset.ts
+var mdxLoaderOptions = async (config) => {
+  const priorConfig = typeof config === "object" ? config ?? {} : {};
+  const priorMdxCompileOptions = "mdxCompileOptions" in priorConfig && typeof priorConfig.mdxCompileOptions === "object" ? priorConfig.mdxCompileOptions ?? {} : {};
+  const priorRemarkPlugins = "remarkPlugins" in priorMdxCompileOptions ? priorMdxCompileOptions.remarkPlugins : void 0;
+  return {
+    ...priorConfig,
+    mdxCompileOptions: {
+      ...priorMdxCompileOptions,
+      remarkPlugins: priorRemarkPlugins,
+      jsxRuntime: "automatic",
+      jsxImportSource: "storybook-addon-vue-mdx"
+    }
+  };
+};
+
+export { mdxLoaderOptions };
