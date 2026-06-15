@@ -363,8 +363,8 @@ const handleSubmit = async (e: Event) => {
 				Keamanan data terjamin oleh MST Protocol
 			</div>
 			<div :class="$style.footerBottom">
-				<span :class="$style.footerBrand">EnterpriseSecure</span>
-				<span :class="$style.footerCopy">© 2024 Enterprise Corp. All rights reserved.</span>
+				<span :class="$style.footerBrand">MST</span>
+				<span :class="$style.footerCopy">© 2026 MST Corp. All rights reserved.</span>
 				<div :class="$style.footerLinks">
 					<a href="#">Syarat &amp; Ketentuan</a>
 					<span>|</span>
@@ -396,7 +396,7 @@ const handleSubmit = async (e: Event) => {
 
 /* ── Card ────────────────────────────────────────── */
 .card {
-	background: #ffffff;
+	background: #fff;
 	border-radius: 16px;
 	box-shadow: 0 4px 32px rgba(30, 70, 100, 0.12);
 	padding: 40px 40px 32px;
@@ -517,7 +517,7 @@ const handleSubmit = async (e: Event) => {
 	&:focus {
 		border-color: #1a8fa8;
 		box-shadow: 0 0 0 3px rgba(26, 143, 168, 0.12);
-		background: #ffffff;
+		background: #fff;
 	}
 }
 
@@ -547,7 +547,7 @@ const handleSubmit = async (e: Event) => {
 	width: 100%;
 	height: 46px;
 	background: #1a3a50;
-	color: #ffffff;
+	color: #fff;
 	border: none;
 	border-radius: 8px;
 	font-size: 15px;
@@ -578,7 +578,7 @@ const handleSubmit = async (e: Event) => {
 	width: 18px;
 	height: 18px;
 	border: 2px solid rgba(255, 255, 255, 0.35);
-	border-top-color: #ffffff;
+	border-top-color: #fff;
 	border-radius: 50%;
 	animation: spin 0.7s linear infinite;
 }
