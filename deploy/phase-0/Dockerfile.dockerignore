@@ -1,0 +1,38 @@
+# Build-context filter untuk deploy/phase-0/Dockerfile (multi-stage from source).
+# Docker membaca file ini secara otomatis ketika build dipanggil dengan
+#   -f deploy/phase-0/Dockerfile
+# (fitur BuildKit: Dockerfile.dockerignore, Docker >= 23)
+
+# ── Artefak yang tidak diperlukan ──────────────────────────────────────────────
+.git
+.gitignore
+*.log
+**/*.log
+**/.DS_Store
+**/.env
+**/.env.*
+
+# Node modules lokal (Docker akan install ulang dari pnpm-lock.yaml)
+node_modules
+**/node_modules
+
+# Dist lokal (Docker akan build ulang dari source)
+packages/*/dist
+packages/frontend/editor-ui/dist
+
+# File deploy (config, secrets, postgres data)
+deploy/
+!deploy/phase-0/Dockerfile
+
+# Direktori test & dokumentasi (tidak dibutuhkan saat build)
+# packages/testing TIDAK di-exclude — pnpm workspace resolution butuh
+# package.json dari packages seperti @n8n/playwright-janitor
+packages/**/__tests__
+packages/**/*.spec.ts
+packages/**/*.test.ts
+**/*.md
+docs/
+
+# CI/CD files
+.github
+.circleci

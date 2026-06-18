@@ -238,14 +238,14 @@ const actions = computed(() => {
 			});
 		} else {
 			items.push({
-				label: locale.baseText('workflows.item.delete'),
-				value: WORKFLOW_LIST_ITEM_ACTIONS.DELETE,
-			});
-			items.push({
 				label: locale.baseText('workflows.item.unarchive'),
 				value: WORKFLOW_LIST_ITEM_ACTIONS.UNARCHIVE,
 			});
 		}
+		items.push({
+			label: locale.baseText('workflows.item.delete'),
+			value: WORKFLOW_LIST_ITEM_ACTIONS.DELETE,
+		});
 	}
 
 	if (

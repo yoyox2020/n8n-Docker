@@ -439,33 +439,6 @@ const onSearch = (value: string) => {
 				})
 			}}</N8nText>
 		</N8nHeading>
-		<div v-if="!usersStore.usersLimitNotReached" :class="$style.setupInfoContainer">
-			<N8nActionBox
-				:heading="
-					i18n.baseText(uiStore.contextBasedTranslationKeys.users.settings.unavailable.title)
-				"
-				:description="
-					i18n.baseText(uiStore.contextBasedTranslationKeys.users.settings.unavailable.description)
-				"
-				:button-text="
-					i18n.baseText(uiStore.contextBasedTranslationKeys.users.settings.unavailable.button)
-				"
-				@click:button="goToUpgrade"
-			/>
-		</div>
-		<N8nNotice v-if="!isAdvancedPermissionsEnabled">
-			<I18nT keypath="settings.users.advancedPermissions.warning" scope="global">
-				<template #link>
-					<N8nLink
-						data-test-id="upgrade-permissions-link"
-						size="small"
-						@click="goToUpgradeAdvancedPermissions"
-					>
-						{{ i18n.baseText('generic.upgrade') }}
-					</N8nLink>
-				</template>
-			</I18nT>
-		</N8nNotice>
 		<div v-if="isExpressionMappingEnabled" :class="$style.container">
 			<N8nAlert
 				type="info"
@@ -499,9 +472,7 @@ const onSearch = (value: string) => {
 				</template>
 				<div>
 					<N8nButton
-						:disabled="
-							isSSOEnabled || !usersStore.usersLimitNotReached || isInstanceRoleProvisioningEnabled
-						"
+						:disabled="isSSOEnabled || isInstanceRoleProvisioningEnabled"
 						:label="i18n.baseText('settings.users.invite')"
 						size="large"
 						data-test-id="settings-users-invite-button"
@@ -512,10 +483,7 @@ const onSearch = (value: string) => {
 		</div>
 		<!-- If there's more than 1 user it means the account quota was more than 1 in the past. So we need to allow instance owner to be able to delete users and transfer workflows.
 		-->
-		<div
-			v-if="usersStore.usersLimitNotReached || usersStore.usersList.state.count > 1"
-			:class="$style.usersContainer"
-		>
+		<div :class="$style.usersContainer">
 			<SettingsUsersTable
 				v-model:table-options="usersTableState"
 				data-test-id="settings-users-table"

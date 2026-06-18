@@ -1,0 +1,67 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import { FallbackMode, WeakMapPlusOptions } from '../core/types';
+export declare class WeakRefNoOp<T extends object | ReadonlyArray<unknown>> {
+    constructor(_targetObject: T);
+    deref(): T | undefined;
+}
+export declare class WeakSetNoOp<T extends object | ReadonlyArray<unknown>> {
+    constructor(_iterable?: Iterable<T> | null);
+    add(_value: T): this;
+    delete(_value: T): boolean;
+    has(_value: T): boolean;
+}
+export declare class WeakMapNoOp<K extends object | ReadonlyArray<unknown>, V> {
+    constructor(_iterable?: Iterable<[K, V]> | null);
+    delete(_key: K): boolean;
+    get(_key: K): V | undefined;
+    has(_key: K): boolean;
+    set(_key: K, _value: V): this;
+}
+export type WeakMapOrNoOp<TK extends object, TV> = WeakMap<TK, TV> | WeakMapNoOp<TK, TV>;
+export type WeakSetOrNoOp<T extends object> = WeakSet<T> | WeakSetNoOp<T>;
+export type WeakRefOrNoOp<T extends object> = WeakRef<T> | WeakRefNoOp<T>;
+export type WeakMapOrFallback = typeof WeakMap | typeof WeakMapNoOp;
+export type WeakSetOrFallback = typeof WeakSet | typeof WeakSetNoOp;
+export type WeakRefOrFallback = typeof WeakRef | typeof WeakRefNoOp;
+export declare function getNativeWeakMap(): typeof WeakMap | null;
+export declare function getNativeWeakMapOrFallback(): WeakMapOrFallback;
+export declare function getNativeWeakSet(): typeof WeakSet | null;
+export declare function getNativeWeakSetOrFallback(): WeakSetOrFallback;
+export declare function getNativeWeakRef(): typeof WeakRef | null;
+export declare function getNativeWeakRefOrFallback(): WeakRefOrFallback;
+export declare function isWeakMapNative(): boolean;
+export declare function isWeakSetNative(): boolean;
+export declare function isWeakRefNative(): boolean;
+export declare function isWeakAPINative(): boolean;
+export declare class WeakMapPlus<K extends object, V> {
+    private isWeak;
+    private fallbackMode;
+    private strongMap;
+    private noopMap;
+    private entriesMap;
+    private keyToId;
+    private cleanupInterval;
+    constructor(options?: WeakMapPlusOptions);
+    private getOrCreateId;
+    set(key: K, value: V): this;
+    get(key: K): V | undefined;
+    has(key: K): boolean;
+    delete(key: K): boolean;
+    private liveEntries;
+    entries(): IterableIterator<[K, V]>;
+    keys(): IterableIterator<K>;
+    values(): IterableIterator<V>;
+    [Symbol.iterator](): IterableIterator<[K, V]>;
+    get size(): number;
+    getFallbackMode(): FallbackMode;
+    cleanup(): void;
+    destroy(): void;
+}

@@ -5,18 +5,17 @@ import { I18nT } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
 import {
 	N8nButton,
-	N8nLogo,
 	N8nTooltip,
 	N8nLink,
 	N8nIcon,
 	N8nIconButton,
 	N8nNavigationDropdown,
 } from '@n8n/design-system';
+import mstLogo from '@/app/mst-logo.svg?url';
 import { useI18n } from '@n8n/i18n';
 import { VIEWS } from '@/app/constants';
 import { useSourceControlStore } from '@/features/integrations/sourceControl.ee/sourceControl.store';
 import KeyboardShortcutTooltip from '@/app/components/KeyboardShortcutTooltip.vue';
-import { useSettingsStore } from '@/app/stores/settings.store';
 import { useGlobalEntityCreation } from '@/app/composables/useGlobalEntityCreation';
 defineProps<{
 	isCollapsed: boolean;
@@ -30,7 +29,6 @@ const emit = defineEmits<{
 
 const i18n = useI18n();
 const sourceControlStore = useSourceControlStore();
-const settingsStore = useSettingsStore();
 
 const createBtn = ref<InstanceType<typeof N8nNavigationDropdown>>();
 
@@ -66,34 +64,29 @@ const {
 		}"
 	>
 		<RouterLink v-if="!isCollapsed" :to="{ name: VIEWS.HOMEPAGE }" :class="$style.logo">
-			<N8nLogo
-				size="small"
-				:collapsed="isCollapsed"
-				:release-channel="settingsStore.settings.releaseChannel"
+			<img :src="mstLogo" alt="MST Logo" :class="$style.mstLogo" />
+			<N8nTooltip
+				v-if="sourceControlStore.preferences.branchReadOnly && !isCollapsed"
+				placement="bottom"
 			>
-				<N8nTooltip
-					v-if="sourceControlStore.preferences.branchReadOnly && !isCollapsed"
-					placement="bottom"
-				>
-					<template #content>
-						<I18nT keypath="readOnlyEnv.tooltip" scope="global">
-							<template #link>
-								<N8nLink
-									to="https://docs.n8n.io/source-control-environments/setup/#step-4-connect-n8n-and-configure-your-instance"
-									size="small"
-								>
-									{{ i18n.baseText('readOnlyEnv.tooltip.link') }}
-								</N8nLink>
-							</template>
-						</I18nT>
-					</template>
-					<N8nIcon
-						data-test-id="read-only-env-icon"
-						icon="lock"
-						:class="$style.readOnlyEnvironmentIcon"
-					/>
-				</N8nTooltip>
-			</N8nLogo>
+				<template #content>
+					<I18nT keypath="readOnlyEnv.tooltip" scope="global">
+						<template #link>
+							<N8nLink
+								to="https://docs.n8n.io/source-control-environments/setup/#step-4-connect-n8n-and-configure-your-instance"
+								size="small"
+							>
+								{{ i18n.baseText('readOnlyEnv.tooltip.link') }}
+							</N8nLink>
+						</template>
+					</I18nT>
+				</template>
+				<N8nIcon
+					data-test-id="read-only-env-icon"
+					icon="lock"
+					:class="$style.readOnlyEnvironmentIcon"
+				/>
+			</N8nTooltip>
 		</RouterLink>
 		<N8nNavigationDropdown
 			v-if="!hideCreate"
@@ -223,6 +216,14 @@ const {
 
 .logo {
 	margin-right: auto;
+	display: flex;
+	align-items: center;
+}
+
+.mstLogo {
+	height: 28px;
+	width: auto;
+	object-fit: contain;
 }
 
 .readOnlyEnvironmentIcon {

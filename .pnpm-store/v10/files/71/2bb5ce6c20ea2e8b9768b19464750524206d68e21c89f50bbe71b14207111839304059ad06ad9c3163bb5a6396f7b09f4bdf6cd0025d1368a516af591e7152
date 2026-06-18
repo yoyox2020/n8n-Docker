@@ -1,0 +1,10 @@
+import { addons } from 'storybook/manager-api';
+
+// src/manager.ts
+
+// src/constants.ts
+var ADDON_ID = "storybook/addon-vue-mdx";
+
+// src/manager.ts
+addons.register(ADDON_ID, () => {
+});

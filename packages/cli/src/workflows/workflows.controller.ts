@@ -554,7 +554,6 @@ export class WorkflowsController {
 		return result;
 	}
 
-	@Licensed('feat:sharing')
 	@Put('/:workflowId/share')
 	async share(req: WorkflowRequest.Share) {
 		const { workflowId } = req.params;

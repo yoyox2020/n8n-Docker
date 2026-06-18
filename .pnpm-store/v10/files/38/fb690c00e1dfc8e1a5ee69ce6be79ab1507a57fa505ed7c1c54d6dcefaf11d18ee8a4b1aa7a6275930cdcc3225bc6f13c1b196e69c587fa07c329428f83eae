@@ -1,0 +1,56 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import type { Fiber } from 'react-reconciler';
+import type { Nullable, Optional } from '../core/types';
+export declare const ClassComponentTag = 1;
+export declare const FunctionComponentTag = 0;
+export declare const ContextConsumerTag = 9;
+export declare const SuspenseComponentTag = 13;
+export declare const OffscreenComponentTag = 22;
+export declare const ForwardRefTag = 11;
+export declare const MemoComponentTag = 14;
+export declare const SimpleMemoComponentTag = 15;
+export declare const HostComponentTag = 5;
+export declare const HostHoistableTag = 26;
+export declare const HostSingletonTag = 27;
+export declare const DehydratedSuspenseComponent = 18;
+export declare const HostText = 6;
+export declare const Fragment = 7;
+export declare const LegacyHiddenComponent = 23;
+export declare const OffscreenComponent = 22;
+export declare const HostRoot = 3;
+export declare const CONCURRENT_MODE_NUMBER = 60111;
+export declare const CONCURRENT_MODE_SYMBOL_STRING = "Symbol(react.concurrent_mode)";
+export declare const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = "Symbol(react.async_mode)";
+export declare const PerformedWork = 1;
+export declare const Placement = 2;
+export declare const DidCapture = 128;
+export declare const Hydrating = 4096;
+export declare const Update = 4;
+export declare const Cloned = 8;
+export declare const ChildDeletion = 16;
+export declare const ContentReset = 32;
+export declare const Ref = 512;
+export declare const Snapshot = 1024;
+export declare const Visibility = 8192;
+export declare const MutationMask: number;
+/**
+ * @see https://reactnative.dev/architecture/glossary#host-view-tree-and-host-view
+ */
+export declare const isHostFiber: (fiber: Fiber) => boolean;
+export declare const getNearestHostFiber: (fiber: Fiber) => Nullable<Fiber>;
+export declare const getTopMostHostFiber: (fiber: Fiber) => Nullable<Fiber>;
+export declare const getTopMostFiberWithChild: (fiber: Fiber) => Nullable<Fiber>;
+export declare const traverseFiber: (fiber: Nullable<Fiber>, selector: (node: Fiber) => boolean | void, ascending?: boolean) => Nullable<Fiber>;
+export declare function getFiberNodeFromElement(element: Element): any;
+export declare function getReactComponentStack(node: Fiber): Array<string>;
+export declare function getDisplayNameOfFiberNode(node: Fiber): string | null;
+export declare function isFunctionalComponent(node: Fiber): boolean;
+export declare function extractReactComponentName(displayName: Optional<string>): Nullable<string>;

@@ -1,0 +1,16 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import type { AnyValue } from '../core/types';
+export declare function isVisualizerElement(element: Element): boolean;
+export declare function createVisualizerElement(tag: string): HTMLElement;
+export declare function tryToAttachOverlay(overlayDiv: HTMLDivElement): void;
+export declare function addTrackedListener(elRef: WeakRef<EventTarget>, type: string, cb: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+export declare function removeAllListeners(elRef: WeakRef<EventTarget>): void;
+export declare function debounce<T extends (...args: AnyValue[]) => AnyValue>(callback: T, delay: number): (...args: Parameters<T>) => void;

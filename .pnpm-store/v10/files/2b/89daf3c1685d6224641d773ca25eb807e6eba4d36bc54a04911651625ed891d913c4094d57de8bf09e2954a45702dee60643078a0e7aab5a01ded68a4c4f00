@@ -1,0 +1,1 @@
+{"version":3,"file":"SequentialClustering.d.ts","sourceRoot":"","sources":["../../src/trace-cluster/SequentialClustering.ts"],"names":[],"mappings":"AAAA;;;;;;;;GAQG;AAEH,OAAO,KAAK,EAAmB,SAAS,EAAC,MAAM,cAAc,CAAC;AAO9D,MAAM,CAAC,OAAO,OAAO,oBAAoB;IACvC,OAAO,CAAC,4BAA4B,CAAmB;IACvD,OAAO,CAAC,eAAe,CAAmB;;IAQnC,OAAO,CAAC,aAAa,EAAE,SAAS,EAAE,GAAG,SAAS,EAAE,EAAE;CAwB1D"}

@@ -1,0 +1,4 @@
+import { ScanResult } from './types';
+export default class ReactFiberAnalyzer {
+    scan(elementWeakRefList: Array<WeakRef<Element>>, elementToComponentStack: WeakMap<Element, string[]>): ScanResult;
+}

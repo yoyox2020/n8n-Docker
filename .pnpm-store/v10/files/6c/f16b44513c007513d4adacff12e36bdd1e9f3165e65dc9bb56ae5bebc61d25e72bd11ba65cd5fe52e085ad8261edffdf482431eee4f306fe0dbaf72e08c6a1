@@ -1,0 +1,18 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import type ReactMemoryScan from '../core/react-memory-scan';
+import type { AnalysisResult } from '../core/types';
+import { BasicExtension } from './basic-extension';
+export declare class DOMVisualizationExtension extends BasicExtension {
+    #private;
+    constructor(scanner: ReactMemoryScan);
+    afterScan(_analysisResult: AnalysisResult): void;
+    cleanup(): void;
+}

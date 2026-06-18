@@ -1,0 +1,18 @@
+import * as react from 'react';
+import { ComponentClass, Key, FunctionComponent, ReactNode } from 'react';
+export { Fragment } from 'react';
+
+declare const jsx: (nodeType: string | ComponentClass<{
+    children: undefined;
+    key: Key;
+}, unknown> | FunctionComponent<{
+    children: undefined;
+    key: Key;
+}>, props: object & {
+    children?: ReactNode;
+}, key: Key) => react.FunctionComponentElement<{}> | react.FunctionComponentElement<react.FragmentProps> | react.ReactElement<{
+    children: undefined;
+    key: Key;
+}, string | react.JSXElementConstructor<any>>;
+
+export { jsx, jsx as jsxDEV, jsx as jsxs };

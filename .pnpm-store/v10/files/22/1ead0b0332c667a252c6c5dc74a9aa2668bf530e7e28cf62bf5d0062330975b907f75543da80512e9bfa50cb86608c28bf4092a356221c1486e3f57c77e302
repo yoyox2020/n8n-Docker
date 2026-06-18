@@ -1,0 +1,26 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import type { BoundingRect, Nullable, AnyValue, ObjectValue } from '../core/types';
+export declare function getDOMElements(): Array<WeakRef<Element>>;
+export declare function getDOMElementCount(): number;
+export declare function getMeaningfulName(name: Nullable<string>): string | null;
+/**
+ * Determines if a given function or class name is minified.
+ *
+ * @param {string} name - The function or class name to check.
+ * @return {boolean} - Returns true if the name is likely minified, otherwise false.
+ */
+export declare function isMinifiedName(name: string): boolean;
+export declare function addCountbyKey<K extends ObjectValue>(map: WeakMap<K, number>, key: K, count: number): void;
+export declare function updateWeakRefList(weakRefList: Array<WeakRef<Element>>, elementRefs: Array<WeakRef<Element>>): WeakRef<Element>[];
+export declare function getBoundingClientRect(element: Element): Nullable<BoundingRect>;
+export declare function consoleLog(...args: AnyValue[]): void;
+export declare function hasRunInSession(): boolean;
+export declare function setRunInSession(): void;

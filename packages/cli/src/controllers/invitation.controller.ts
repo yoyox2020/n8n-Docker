@@ -48,8 +48,6 @@ export class InvitationController {
 	) {
 		if (invitations.length === 0) return [];
 
-		const isWithinUsersLimit = this.license.isWithinUsersLimit();
-
 		if (isSsoCurrentAuthenticationMethod()) {
 			this.logger.debug(
 				'SSO is enabled, so users are managed by the Identity Provider and cannot be added through invites',
@@ -57,13 +55,6 @@ export class InvitationController {
 			throw new BadRequestError(
 				'SSO is enabled, so users are managed by the Identity Provider and cannot be added through invites',
 			);
-		}
-
-		if (!isWithinUsersLimit) {
-			this.logger.debug(
-				'Request to send email invite(s) to user(s) failed because the user limit quota has been reached',
-			);
-			throw new ForbiddenError(RESPONSE_ERROR_MESSAGES.USERS_QUOTA_REACHED);
 		}
 
 		if (!(await this.ownershipService.hasInstanceOwner())) {

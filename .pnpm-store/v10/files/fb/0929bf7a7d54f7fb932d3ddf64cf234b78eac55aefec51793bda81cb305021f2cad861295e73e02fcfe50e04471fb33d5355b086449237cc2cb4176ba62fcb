@@ -1,0 +1,148 @@
+{
+  "name": "storybook-addon-vue-mdx",
+  "version": "3.0.0",
+  "description": "Use Vue components inside MDX files, as if they were React components.",
+  "keywords": [
+    "storybook-addon",
+    "organize",
+    "documentation",
+    "vue",
+    "mdx"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Sidnioulz/storybook-addon-vue-mdx.git"
+  },
+  "author": "Steve Dodier-Lazaro <sidnioulz@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./preview": {
+      "types": "./dist/preview.d.ts",
+      "default": "./dist/preview.js"
+    },
+    "./jsx-dev-runtime": {
+      "types": "./dist/jsx-runtime.d.ts",
+      "default": "./dist/jsx-runtime.js"
+    },
+    "./jsx-runtime": {
+      "types": "./dist/jsx-runtime.d.ts",
+      "default": "./dist/jsx-runtime.js"
+    },
+    "./preset": "./dist/preset.js",
+    "./manager": "./dist/manager.js",
+    "./package.json": "./package.json"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "*.js",
+    "*.d.ts"
+  ],
+  "bundler": {
+    "jsxEntries": [
+      "src/index.ts",
+      "src/jsx-runtime.ts"
+    ],
+    "managerEntries": [
+      "src/manager.ts"
+    ],
+    "nodeEntries": [
+      "src/preset.ts",
+      "src/index.ts"
+    ],
+    "previewEntries": [
+      "src/preview.ts"
+    ]
+  },
+  "scripts": {
+    "build-storybook": "storybook build",
+    "build": "tsup",
+    "build:watch": "pnpm build --watch",
+    "eject-ts": "zx scripts/eject-typescript.mjs",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "lint": "eslint --cache . --ext .ts,.tsx,.js,.jsx,.vue,.cjs",
+    "lint:fix": "pnpm lint --fix",
+    "pack:local": "pnpm pack --out storybook-addon-vue-mdx-$(date +%s).tgz",
+    "prebuild": "node -e \"fs.rmSync('./dist', { recursive: true, force: true })\"",
+    "prepack:local": "pnpm build",
+    "prepare": "husky",
+    "release": "pnpm build && pnpm semantic-release",
+    "release:canary": "pnpm build && auto canary",
+    "start": "run-p build:watch 'storybook'",
+    "storybook": "storybook dev -p 6006",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@commitlint/config-conventional": "^19.8.1",
+    "@eslint/js": "^9.38.0",
+    "@storybook/addon-docs": "next",
+    "@storybook/builder-vite": "next",
+    "@storybook/icons": "^1.6.0",
+    "@storybook/react": "next",
+    "@storybook/react-vite": "next",
+    "@storybook/vue3": "next",
+    "@types/node": "^22.18.12",
+    "@types/react": "^19.2.2",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "auto": "^11.3.0",
+    "boxen": "^8.0.1",
+    "commitlint": "^19.8.1",
+    "dedent": "^1.7.0",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-vue": "^10.5.1",
+    "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.6.2",
+    "prompts": "^2.4.2",
+    "prop-types": "^15.8.1",
+    "semantic-release": "^24.2.9",
+    "storybook": "next",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vite": "^6.4.1",
+    "vue": "^3.5.22",
+    "vuestic-ui": "^1.10.3",
+    "zx": "^8.8.5"
+  },
+  "peerDependencies": {
+    "@storybook/addon-docs": "^10.0.0",
+    "@storybook/builder-vite": "^10.0.0",
+    "react": ">= 16.4.0",
+    "react-dom": ">= 16.4.0",
+    "storybook": "^10.0.0",
+    "vue": "^3.4.31"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@10.18.3",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "storybook": {
+    "displayName": "Vue support for MDX",
+    "supportedFrameworks": [
+      "vue"
+    ],
+    "icon": "https://user-images.githubusercontent.com/321738/63501763-88dbf600-c4cc-11e9-96cd-94adadc2fd72.png"
+  },
+  "dependencies": {
+    "veaury": "^2.6.3"
+  }
+}

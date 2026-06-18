@@ -16,8 +16,6 @@ services:
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     restart: unless-stopped
-    ports:
-      - "5678:5678"
     environment:
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
@@ -29,7 +27,26 @@ services:
       N8N_PORT: 5678
       N8N_PROTOCOL: http
       WEBHOOK_URL: http://localhost:5678
+      N8N_USER_MANAGEMENT_DISABLED: "true"
+      N8N_USER_MANAGEMENT_IS_INSTANCE_OWNER_SET_UP: "true"
+      N8N_DEFAULT_USER_EMAIL: "minumsusuyuk@gmail.com"
+      N8N_DEFAULT_USER_FIRST_NAME: "yahya"
+      N8N_DEFAULT_USER_LAST_NAME: "matori"
+      N8N_DEFAULT_USER_PASSWORD: "yahya2020"
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: "minumsusuyuk@gmail.com"
+      N8N_BASIC_AUTH_PASSWORD: "yahya2020"
     volumes:
       - n8n-data:/home/node/.n8n
     depends_on:
       - postgres
+
+  n8n-proxy:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "5678:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - n8n

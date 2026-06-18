@@ -21,6 +21,7 @@ export const WORKFLOW_SHARING_EDITOR_SCOPES: Scope[] = [
 	'workflow:read',
 	'workflow:export',
 	'workflow:update',
+	'workflow:delete',
 	'workflow:publish',
 	'workflow:unpublish',
 	'workflow:execute',

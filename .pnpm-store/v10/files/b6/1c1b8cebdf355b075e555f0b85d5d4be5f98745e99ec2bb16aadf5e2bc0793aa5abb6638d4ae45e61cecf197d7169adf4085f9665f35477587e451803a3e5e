@@ -1,0 +1,15 @@
+function logCodSpeed(message) {
+  console.log(`[CodSpeed] ${message}`);
+}
+let teardownHappened = false;
+function globalSetup() {
+  logCodSpeed(`@codspeed/vitest-plugin v${"5.2.0"} - setup`);
+  return () => {
+    if (teardownHappened)
+      throw new Error("teardown called twice");
+    teardownHappened = true;
+    logCodSpeed(`@codspeed/vitest-plugin v${"5.2.0"} - teardown`);
+  };
+}
+
+export { globalSetup as default };

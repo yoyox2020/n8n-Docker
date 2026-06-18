@@ -1,0 +1,65 @@
+import { createElement, Fragment as Fragment$1 } from 'react';
+export { Fragment } from 'react';
+import { applyPureVueInReact } from 'veaury';
+import { h, Fragment } from 'vue';
+
+// src/jsx-runtime.ts
+
+// src/constants.ts
+var PARAM_KEY = "vueMdx";
+
+// src/globals.ts
+function getGlobals() {
+  const preview = window.__STORYBOOK_PREVIEW__;
+  const { initialGlobals } = preview.storyStoreValue.globals ?? preview.storyStoreValue.userGlobals;
+  return initialGlobals[PARAM_KEY];
+}
+
+// src/jsx-runtime.ts
+var isLikelyVueComponent = (nodeType) => {
+  if (typeof nodeType === "object" && nodeType !== null) {
+    if ("__name" in nodeType && !!nodeType.__name && "__scopeId" in nodeType && !!nodeType.__scopeId) {
+      return true;
+    }
+    if ("__name" in nodeType && !!nodeType.__name && "__hmrId" in nodeType && !!nodeType.__hmrId) {
+      return true;
+    }
+    if ("name" in nodeType && !!nodeType.name && "setup" in nodeType && !!nodeType.setup) {
+      return true;
+    }
+    if ("render" in nodeType && typeof nodeType.render === "function") {
+      return true;
+    }
+    if ("setup" in nodeType && typeof nodeType.setup === "function") {
+      return true;
+    }
+    if ("__file" in nodeType && "render" in nodeType) {
+      return true;
+    }
+    if ("template" in nodeType && "components" in nodeType) {
+      return true;
+    }
+  }
+  return false;
+};
+var _vueFragment = h(Fragment);
+var isLikelyVueFragment = (nodeType) => nodeType === _vueFragment.type;
+var jsx = (nodeType, props, key) => {
+  const children = "children" in props ? props.children : void 0;
+  const newProps = { ...props, children: void 0, key };
+  if (isLikelyVueComponent(nodeType)) {
+    const vueMdxOptions = getGlobals();
+    const wrappedNode = applyPureVueInReact(nodeType, vueMdxOptions);
+    return createElement(
+      wrappedNode,
+      newProps,
+      children
+    );
+  }
+  if (isLikelyVueFragment(nodeType)) {
+    return createElement(Fragment$1, newProps, children);
+  }
+  return createElement(nodeType, newProps, children);
+};
+
+export { jsx, jsx as jsxDEV, jsx as jsxs };

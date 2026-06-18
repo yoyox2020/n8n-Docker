@@ -1,0 +1,160 @@
+interface InstrumentHooks$1 {
+    /**
+     * Check if instrumentation is enabled
+     */
+    isInstrumented(): boolean;
+    /**
+     * Start benchmark measurement
+     * @returns 0 on success, non-zero on error
+     */
+    startBenchmark(): number;
+    /**
+     * Stop benchmark measurement
+     * @returns 0 on success, non-zero on error
+     */
+    stopBenchmark(): number;
+    /**
+     * Set the executed benchmark metadata
+     * @param pid Process ID
+     * @param uri Benchmark URI/identifier
+     * @returns 0 on success, non-zero on error
+     */
+    setExecutedBenchmark(pid: number, uri: string): number;
+    /**
+     * Set integration metadata
+     * @param name Integration name
+     * @param version Integration version
+     * @returns 0 on success, non-zero on error
+     */
+    setIntegration(name: string, version: string): number;
+    /**
+     * Execute a callback function with __codspeed_root_frame__ in its stack trace
+     * @param callback Function to execute
+     */
+    __codspeed_root_frame__<T>(callback: () => T): T;
+}
+
+type SetupInstrumentsRequestBody = {
+    /**
+     * The full `MONGO_URL` that is usually used to connect to the database.
+     */
+    mongoUrl: string;
+};
+
+type SetupInstrumentsResponse = {
+    /**
+     * The patched `MONGO_URL` that should be used to connect to the database.
+     */
+    remoteAddr: string;
+};
+
+declare class MongoMeasurement {
+    private tracerClient;
+    constructor();
+    setupInstruments(body: SetupInstrumentsRequestBody): Promise<SetupInstrumentsResponse>;
+    start(uri: string): Promise<void>;
+    stop(uri: string): Promise<void>;
+}
+
+declare const getV8Flags: () => string[];
+declare const tryIntrospect: () => void;
+
+declare const optimizeFunction: (fn: CallableFunction) => Promise<void>;
+declare const optimizeFunctionSync: (fn: CallableFunction) => void;
+
+declare function getGitDir(path: string): string | undefined;
+/**
+ * Log debug messages if the environment variable `CODSPEED_DEBUG` is set.
+ */
+declare function logDebug(...args: unknown[]): void;
+
+interface BenchmarkStats {
+    min_ns: number;
+    max_ns: number;
+    mean_ns: number;
+    stdev_ns: number;
+    q1_ns: number;
+    median_ns: number;
+    q3_ns: number;
+    rounds: number;
+    total_time: number;
+    iqr_outlier_rounds: number;
+    stdev_outlier_rounds: number;
+    iter_per_round: number;
+    warmup_iters: number;
+}
+interface BenchmarkConfig {
+    warmup_time_ns: number | null;
+    min_round_time_ns: number | null;
+    max_time_ns?: number | null;
+    max_rounds?: number | null;
+}
+interface Benchmark {
+    name: string;
+    uri: string;
+    config: BenchmarkConfig;
+    stats: BenchmarkStats;
+}
+interface InstrumentInfo {
+    type: string;
+}
+interface ResultData {
+    creator: {
+        name: string;
+        version: string;
+        pid: number;
+    };
+    instrument: {
+        type: "walltime";
+    };
+    benchmarks: Benchmark[];
+    metadata?: Record<string, unknown>;
+}
+
+declare function calculateQuantiles({ sortedTimesNs, stdevNs, meanNs, }: {
+    sortedTimesNs: number[];
+    stdevNs: number;
+    meanNs: number;
+}): {
+    q1_ns: number;
+    median_ns: number;
+    q3_ns: number;
+    iqr_outlier_rounds: number;
+    stdev_outlier_rounds: number;
+};
+
+/**
+ * Converts nanoseconds to milliseconds.
+ * @param ns - the nanoseconds to convert
+ * @returns the milliseconds
+ */
+declare const nsToMs: (ns: number) => number;
+/**
+ * Converts milliseconds to nanoseconds.
+ * @param ms - the milliseconds to convert
+ * @returns the nanoseconds
+ */
+declare const msToNs: (ms: number) => number;
+/**
+ * Converts milliseconds to seconds.
+ * @param ms - the milliseconds to convert
+ * @returns the seconds
+ */
+declare const msToS: (ms: number) => number;
+
+declare function getProfileFolder(): string | null;
+declare function writeWalltimeResults(benchmarks: Benchmark[], asyncWarning?: boolean): void;
+
+declare const isBound: boolean;
+declare const mongoMeasurement: MongoMeasurement;
+type CodSpeedRunnerMode = "disabled" | "simulation" | "memory" | "walltime";
+type InstrumentMode = "disabled" | "analysis" | "walltime";
+declare function getCodspeedRunnerMode(): CodSpeedRunnerMode;
+declare function getInstrumentMode(): InstrumentMode;
+declare const setupCore: () => void;
+declare const teardownCore: () => void;
+
+declare const InstrumentHooks: InstrumentHooks$1;
+
+export { type Benchmark, type BenchmarkConfig, type BenchmarkStats, InstrumentHooks, type InstrumentInfo, type InstrumentMode, type ResultData, type SetupInstrumentsRequestBody, type SetupInstrumentsResponse, calculateQuantiles, getCodspeedRunnerMode, getGitDir, getInstrumentMode, getProfileFolder, getV8Flags, isBound, logDebug, mongoMeasurement, msToNs, msToS, nsToMs, optimizeFunction, optimizeFunctionSync, setupCore, teardownCore, tryIntrospect, writeWalltimeResults };
+//# sourceMappingURL=index.d.ts.map

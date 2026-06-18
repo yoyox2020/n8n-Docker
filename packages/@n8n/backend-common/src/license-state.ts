@@ -67,7 +67,7 @@ export class LicenseState {
 	}
 
 	isSharingLicensed() {
-		return this.isLicensed('feat:sharing');
+		return true;
 	}
 
 	isLogStreamingLicensed() {

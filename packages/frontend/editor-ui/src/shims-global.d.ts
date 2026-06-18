@@ -21,6 +21,10 @@ import type { MiddlewareOptions, RouterMiddlewareType } from '@/app/types/router
 
 declare module '*.json';
 declare module '*.svg';
+declare module '*.svg?url' {
+	const url: string;
+	export default url;
+}
 declare module '*.png';
 declare module '*.jpg';
 declare module '*.jpeg';

@@ -1,0 +1,37 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall memory_lab
+ */
+import type { Fiber } from 'react-reconciler';
+import type { AnalysisResultCallback, CreateOptions, DOMElementInfo, ScanResult } from './types';
+import type { BasicExtension } from '../extensions/basic-extension';
+export default class ReactMemoryScan {
+    #private;
+    static nextElementId: number;
+    constructor(options?: CreateOptions);
+    subscribe(callback: AnalysisResultCallback): () => void;
+    unsubscribe(callback: AnalysisResultCallback): void;
+    registerExtension(extension: BasicExtension): () => void;
+    unregisterExtension(extension: BasicExtension): void;
+    start(): void;
+    pause(): void;
+    stop(): void;
+    dispose(): void;
+    recordBoundingRectangles(elementRefs: Array<WeakRef<Element>>): void;
+    getDetachedDOMInfo(): Array<DOMElementInfo>;
+    isDevMode(): boolean;
+    getCachedComponentName(elementRef: WeakRef<Element>): string;
+    updateFiberNodes(fiberNodes: Array<WeakRef<Fiber>>): Array<WeakRef<Fiber>>;
+    packLeakedFibers(leakedFibers: Array<WeakRef<Fiber>>): Array<LeakedFiber>;
+    scan(): ScanResult;
+}
+declare class LeakedFiber {
+    leakedFiber: WeakRef<Fiber>;
+    constructor(fiber: WeakRef<Fiber>);
+}
+export {};

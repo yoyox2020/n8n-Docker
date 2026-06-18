@@ -121,9 +121,8 @@ export const useUsersStore = defineStore(STORES.USERS, () => {
 		return getPersonalizedNodeTypes(answers);
 	});
 
-	const usersLimitNotReached = computed(
-		(): boolean => userQuota.value === -1 || userQuota.value > allUsers.value.length,
-	);
+	// Custom RBAC fork: always allow unlimited users
+	const usersLimitNotReached = computed((): boolean => true);
 
 	// Methods
 

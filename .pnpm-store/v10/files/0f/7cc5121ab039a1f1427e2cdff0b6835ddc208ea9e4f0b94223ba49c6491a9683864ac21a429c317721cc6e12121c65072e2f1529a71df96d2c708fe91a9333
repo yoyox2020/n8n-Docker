@@ -1,0 +1,2 @@
+import { RegisterDataUpdateCallback } from '../dom-element-visualizer-interactive';
+export declare function createStatusText(registerDataUpdateCallback: RegisterDataUpdateCallback): HTMLDivElement;
