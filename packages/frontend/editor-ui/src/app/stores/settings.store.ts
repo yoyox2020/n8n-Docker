@@ -65,7 +65,11 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, () => {
 		secureCookie: settings.value.authCookie.secure,
 	}));
 
-	const isEnterpriseFeatureEnabled = computed(() => settings.value.enterprise ?? {});
+	// Custom RBAC fork: always enable sharing so owner can share workflows with members
+	const isEnterpriseFeatureEnabled = computed(() => ({
+		...(settings.value.enterprise ?? {}),
+		sharing: true,
+	}));
 
 	const nodeJsVersion = computed(() => settings.value.nodeJsVersion);
 

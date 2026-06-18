@@ -14,13 +14,13 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - asuralab
+      - mstworkflow
 
   n8n:
     build:
       context: ../..
       dockerfile: deploy/phase-0/Dockerfile
-    image: asuralab/n8n:phase-0
+    image: mstworkflow/n8n:phase-0
     restart: unless-stopped
     depends_on:
       postgres:
@@ -42,10 +42,10 @@ services:
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n}
     networks:
-      - asuralab
+      - mstworkflow
 
 networks:
-  asuralab:
+  mstworkflow:
     driver: bridge
 
 volumes:

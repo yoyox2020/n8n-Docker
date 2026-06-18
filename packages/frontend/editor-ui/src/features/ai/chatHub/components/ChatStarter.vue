@@ -5,20 +5,13 @@ import { hasPermission } from '@/app/utils/rbac/permissions';
 import { EnterpriseEditionFeature } from '@/app/constants';
 import { INVITE_USER_MODAL_KEY } from '@/features/settings/users/users.constants';
 import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
-import {
-	N8nButton,
-	N8nCard,
-	N8nHeading,
-	N8nIcon,
-	N8nLink,
-	N8nText,
-	N8nTooltip,
-} from '@n8n/design-system';
+import { N8nButton, N8nHeading, N8nLink, N8nText, N8nTooltip } from '@n8n/design-system';
 import { useI18n } from '@n8n/i18n';
 import { computed } from 'vue';
 import { I18nT } from 'vue-i18n';
-import CredentialIcon from '@/features/credentials/components/CredentialIcon.vue';
 import { ROLE } from '@n8n/api-types';
+import { useUsersStore } from '@/features/settings/users/users.store';
+import mstLogo from '@/app/mst-logo.svg?url';
 
 defineProps<{
 	showWelcomeScreen: boolean;
@@ -30,8 +23,16 @@ const emit = defineEmits<{
 
 const uiStore = useUIStore();
 const settingsStore = useSettingsStore();
+const usersStore = useUsersStore();
 const i18n = useI18n();
 const { goToUpgrade } = usePageRedirectionHelper();
+
+const currentUserName = computed(() => {
+	const user = usersStore.currentUser;
+	if (!user) return '';
+	const full = [user.firstName, user.lastName].filter(Boolean).join(' ');
+	return full || user.email || '';
+});
 
 const CHAT_USERS_DOCS_URL = 'https://docs.n8n.io/advanced-ai/chat-hub/#chat-user-role';
 
@@ -62,65 +63,16 @@ function handleUpgradeClick() {
 <template>
 	<Transition name="welcome-fade" mode="out-in">
 		<div v-if="showWelcomeScreen" key="welcome" :class="$style.welcomeContent">
+			<img :src="mstLogo" alt="MST Logo" :class="$style.mstLogo" />
+
 			<div :class="$style.header">
 				<N8nHeading tag="h2" bold size="xlarge">
-					{{ i18n.baseText('chatHub.welcome.header') }}
+					Selamat datang<span v-if="currentUserName">, {{ currentUserName }}</span
+					>!
 				</N8nHeading>
 				<N8nText size="large" color="text-light">
 					{{ i18n.baseText('chatHub.welcome.subtitle') }}
 				</N8nText>
-			</div>
-
-			<div :class="$style.cardGrid">
-				<div
-					data-test-id="welcome-card-workflow-agents"
-					:class="[$style.cardWrapper, $style.cardFirst]"
-				>
-					<N8nCard :class="$style.card">
-						<div :class="$style.cardHeader">
-							<N8nIcon icon="robot" size="large" color="text-dark" />
-							<N8nText bold>{{
-								i18n.baseText('chatHub.welcome.card.workflowAgents.title')
-							}}</N8nText>
-						</div>
-						<N8nText size="small" color="text-light">{{
-							i18n.baseText('chatHub.welcome.card.workflowAgents.description')
-						}}</N8nText>
-					</N8nCard>
-				</div>
-
-				<div
-					:class="[$style.cardWrapper, $style.cardMiddle]"
-					data-test-id="welcome-card-personal-agents"
-				>
-					<N8nCard :class="$style.card">
-						<div :class="$style.cardHeader">
-							<N8nIcon icon="message-square" size="large" color="text-dark" />
-							<N8nText bold>{{
-								i18n.baseText('chatHub.welcome.card.personalAgents.title')
-							}}</N8nText>
-						</div>
-						<N8nText size="small" color="text-light">{{
-							i18n.baseText('chatHub.welcome.card.personalAgents.description')
-						}}</N8nText>
-					</N8nCard>
-				</div>
-
-				<div :class="[$style.cardWrapper, $style.cardLast]" data-test-id="welcome-card-base-models">
-					<N8nCard :class="$style.card">
-						<div :class="$style.cardHeader">
-							<div :class="$style.providerIcons">
-								<CredentialIcon credential-type-name="openAiApi" :size="20" />
-								<CredentialIcon credential-type-name="anthropicApi" :size="20" />
-								<CredentialIcon credential-type-name="googlePalmApi" :size="20" />
-							</div>
-							<N8nText bold>{{ i18n.baseText('chatHub.welcome.card.baseModels.title') }}</N8nText>
-						</div>
-						<N8nText size="small" color="text-light">{{
-							i18n.baseText('chatHub.welcome.card.baseModels.description')
-						}}</N8nText>
-					</N8nCard>
-				</div>
 			</div>
 
 			<div :class="$style.buttonGroup">
@@ -166,87 +118,6 @@ function handleUpgradeClick() {
 </template>
 
 <style lang="scss" module>
-.header {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	gap: var(--spacing--xs);
-}
-
-.cardGrid {
-	display: flex;
-	max-width: 700px;
-
-	@include mixins.breakpoint('sm-and-down') {
-		flex-direction: column;
-	}
-}
-
-.cardWrapper {
-	flex: 1;
-	text-decoration: none;
-	color: inherit;
-
-	&:not(:first-child) {
-		margin-left: -1px;
-	}
-
-	@include mixins.breakpoint('sm-and-down') {
-		&:not(:first-child) {
-			margin-left: 0;
-			margin-top: -1px;
-		}
-	}
-}
-
-.card {
-	height: 100%;
-	border-radius: 0;
-	padding: var(--spacing--lg);
-	align-items: flex-start;
-	gap: var(--spacing--xs);
-}
-
-.cardFirst .card {
-	border-radius: var(--radius--lg) 0 0 var(--radius--lg);
-
-	@include mixins.breakpoint('sm-and-down') {
-		border-radius: var(--radius--lg) var(--radius--lg) 0 0;
-	}
-}
-
-.cardMiddle .card {
-	border-radius: 0;
-}
-
-.cardLast .card {
-	border-radius: 0 var(--radius--lg) var(--radius--lg) 0;
-
-	@include mixins.breakpoint('sm-and-down') {
-		border-radius: 0 0 var(--radius--lg) var(--radius--lg);
-	}
-}
-
-.cardHeader {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: var(--spacing--2xs);
-	margin-bottom: var(--spacing--xs);
-}
-
-.providerIcons {
-	display: flex;
-	gap: var(--spacing--2xs);
-}
-
-.buttonGroup {
-	display: flex;
-	gap: var(--spacing--sm);
-	justify-content: center;
-}
-
 .welcomeContent {
 	position: absolute;
 	left: 0;
@@ -260,6 +131,26 @@ function handleUpgradeClick() {
 	justify-content: center;
 	gap: var(--spacing--xl);
 	background-color: var(--color--background--light-2);
+}
+
+.mstLogo {
+	height: 72px;
+	width: auto;
+	object-fit: contain;
+}
+
+.header {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: var(--spacing--xs);
+}
+
+.buttonGroup {
+	display: flex;
+	gap: var(--spacing--sm);
+	justify-content: center;
 }
 </style>
 
