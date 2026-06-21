@@ -131,6 +131,7 @@ const numberOfMembersInHomeTeamProject = computed(() => teamProject.value?.relat
 
 const workflowRoleTranslations = computed(() => ({
 	'workflow:editor': i18n.baseText('workflows.shareModal.role.editor'),
+	'workflow:viewer': i18n.baseText('workflows.shareModal.role.viewer'),
 	'workflow:owner': '',
 }));
 

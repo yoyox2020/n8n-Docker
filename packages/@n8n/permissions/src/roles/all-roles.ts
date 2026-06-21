@@ -30,6 +30,7 @@ const ROLE_NAMES: Record<AllRoleTypes, string> = {
 	'credential:owner': 'Credential Owner',
 	'workflow:owner': 'Workflow Owner',
 	'workflow:editor': 'Workflow Editor',
+	'workflow:viewer': 'Workflow Viewer',
 	'secretsProviderConnection:owner': 'Secrets Provider Connection Owner',
 	'secretsProviderConnection:user': 'Secrets Provider Connection User',
 };
@@ -50,6 +51,7 @@ const ROLE_DESCRIPTIONS: Record<AllRoleTypes, string> = {
 	'credential:owner': 'Credential Owner',
 	'workflow:owner': 'Workflow Owner',
 	'workflow:editor': 'Workflow Editor',
+	'workflow:viewer': 'Read-only access to the workflow',
 	'secretsProviderConnection:owner':
 		'Full control of secrets provider connection settings and secrets',
 	'secretsProviderConnection:user': 'Read-only access to use secrets from the connection',

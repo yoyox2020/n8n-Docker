@@ -39,6 +39,7 @@ import { ChatHubToolService } from './chat-hub-tool.service';
 import { ChatHubWorkflowService } from './chat-hub-workflow.service';
 import { ChatHubAttachmentService } from './chat-hub.attachment.service';
 import { ChatHubModelsService } from './chat-hub.models.service';
+import { MstAgentService } from './mst-agent.service';
 import {
 	HumanMessagePayload,
 	RegenerateMessagePayload,
@@ -68,6 +69,7 @@ export class ChatHubService {
 		private readonly chatHubToolService: ChatHubToolService,
 		private readonly chatHubWorkflowService: ChatHubWorkflowService,
 		private readonly globalConfig: GlobalConfig,
+		private readonly mstAgentService: MstAgentService,
 	) {
 		this.logger = this.logger.scoped('chat-hub');
 	}
@@ -553,6 +555,12 @@ export class ChatHubService {
 			})),
 		});
 
+		// MST: intercept workflow creation requests — call Agent Service instead of LLM
+		if (this.mstAgentService.isWorkflowRequest(message)) {
+			void this.handleAgentWorkflowRequest(user, sessionId, messageId, message, model);
+			return;
+		}
+
 		const resumed = await this.tryResumeWaitingExecution({
 			workflow,
 			previousMessage,
@@ -577,6 +585,54 @@ export class ChatHubService {
 			message,
 			processedAttachments,
 		);
+	}
+
+	/**
+	 * Route workflow creation requests to the MST Agent Service.
+	 * Called when user message matches workflow building keywords.
+	 */
+	private async handleAgentWorkflowRequest(
+		user: User,
+		sessionId: ChatSessionId,
+		previousMessageId: ChatMessageId,
+		message: string,
+		model: ChatHubConversationModel,
+	): Promise<void> {
+		const { v4: uuidv4 } = await import('uuid');
+		const aiMessageId = uuidv4() as ChatMessageId;
+
+		try {
+			await this.chatStreamService.startExecution(user.id, sessionId);
+			await this.chatStreamService.startStream({
+				userId: user.id,
+				sessionId,
+				messageId: aiMessageId,
+				previousMessageId,
+				retryOfMessageId: null,
+				executionId: null,
+			});
+
+			const result = await this.mstAgentService.buildWorkflow(message, user.id, sessionId);
+			const content = this.mstAgentService.formatResponse(result);
+
+			await this.messageRepository.createAIMessage({
+				id: aiMessageId,
+				sessionId,
+				previousMessageId,
+				content,
+				model,
+				retryOfMessageId: null,
+				status: 'success',
+			});
+
+			await this.chatStreamService.sendChunk(sessionId, aiMessageId, content);
+			await this.chatStreamService.endStream(sessionId, aiMessageId, 'success');
+			await this.chatStreamService.endExecution(user.id, sessionId, 'success');
+		} catch (error) {
+			const errorMsg = error instanceof Error ? error.message : 'Failed to build workflow';
+			this.logger.error(`Agent workflow request failed: ${errorMsg}`);
+			await this.chatStreamService.endExecution(user.id, sessionId, 'error');
+		}
 	}
 
 	/**

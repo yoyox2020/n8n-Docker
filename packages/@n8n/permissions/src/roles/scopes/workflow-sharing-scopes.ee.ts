@@ -27,3 +27,9 @@ export const WORKFLOW_SHARING_EDITOR_SCOPES: Scope[] = [
 	'workflow:execute',
 	'workflow:execute-chat',
 ];
+
+export const WORKFLOW_SHARING_VIEWER_SCOPES: Scope[] = [
+	'workflow:read',
+	'workflow:export',
+	'workflow:execute-chat',
+];

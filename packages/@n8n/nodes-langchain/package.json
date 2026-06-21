@@ -81,7 +81,8 @@
       "dist/credentials/ZepApi.credentials.js",
       "dist/credentials/ChatHubVectorStorePGVectorApi.credentials.js",
       "dist/credentials/ChatHubVectorStoreQdrantApi.credentials.js",
-      "dist/credentials/ChatHubVectorStorePineconeApi.credentials.js"
+      "dist/credentials/ChatHubVectorStorePineconeApi.credentials.js",
+      "dist/credentials/MisikaAiApi.credentials.js"
     ],
     "nodes": [
       "dist/nodes/vendors/AlibabaCloud/AlibabaCloud.node.js",
@@ -132,6 +133,7 @@
       "dist/nodes/llms/LMChatLemonade/LmChatLemonade.node.js",
       "dist/nodes/llms/LmChatNvidia/LmChatNvidia.node.js",
       "dist/nodes/llms/LMChatOllama/LmChatOllama.node.js",
+      "dist/nodes/llms/LmChatMisikaAi/LmChatMisikaAi.node.js",
       "dist/nodes/llms/LmChatOpenRouter/LmChatOpenRouter.node.js",
       "dist/nodes/llms/LmChatVercelAiGateway/LmChatVercelAiGateway.node.js",
       "dist/nodes/llms/LmChatXAiGrok/LmChatXAiGrok.node.js",

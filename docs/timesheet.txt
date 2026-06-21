@@ -1,0 +1,140 @@
+timesheet
+1. membuat trigger automatis
+2. memeperbaiki docker build local
+3. membuat taskGraph otomatis
+
+cara kerja task trigger
+User kirim prompt post /plan
+       │
+       ▼
+┌─────────────────────────────────────────┐
+│  1. LOAD TOOLS CATALOG                  │
+│     app/nodes_catalog.py                │
+│     54 node n8n tersedia (lokal)        │
+│     contoh: slackTrigger, emailSend...  │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│  2. AMBIL HISTORY (jika ada user_id)    │
+│     Query PostgreSQL → agent_memory     │
+│     Max 10 pesan terakhir               │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│  3. BANGUN PROMPT ke LLM                │
+│                                         │
+│  [system] Kamu adalah workflow planner  │
+│           Berikut 54 node yang tersedia │
+│           Return ONLY valid JSON        │
+│                                         │
+│  [history] (pesan sebelumnya jika ada)  │
+│                                         │
+│  [user] "kirim email otomatis ketika    │
+│          ada pesan baru di Slack..."    │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│  4. KIRIM ke DeepSeek via OpenRouter    │
+│     POST openrouter.ai/api/v1/          │
+│            chat/completions             │
+│     Response: SSE streaming chunks      │
+│     Kumpulkan semua chunk → satu string │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│  5. PARSE JSON RESPONSE                 │
+│                                         │
+│  {                                      │
+│    "summary": "...",                    │
+│    "intent": "slack_to_email",          │
+│    "task_graph": [                      │
+│      { step:1, node_type:slackTrigger}  │
+│      { step:2, node_type:emailSend }    │
+│    ]                                    │
+│  }                                      │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│  6. SIMPAN ke MEMORY                    │
+│     user turn → PostgreSQL              │
+│     assistant turn → PostgreSQL         │
+│     (untuk konteks percakapan berikut)  │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+        Return ke user
+
+Intinya: Agent tidak "tahu" workflow — dia kasih tahu LLM daftar node yang tersedia, lalu LLM yang memilih node mana yang paling tepat untuk otomasi yang diminta user. Memory disimpan agar prompt berikutnya bisa melanjutkan konteks sebelumnya.
+
+
+
+cara kerja plan b
+User ketik pesan di Chat Hub
+           │
+           ▼
+    Chat Hub Backend
+    chat-hub.service.ts
+           │
+           ├─── Pesan biasa? ──────► LLM (Mistika-AI/OpenRouter)
+           │                              │
+           └─── Pesan planning? ──────► Agent Service
+                (deteksi keyword          POST /plan/
+                 atau selalu)                  │
+                                         task_graph JSON
+                                               │
+                                               ▼
+                                    Format jadi chat response
+                                    "Saya rekomendasikan workflow:
+                                     Step 1: Slack Trigger
+                                     Step 2: Send Email"
+
+
+
+
+Paham. Saya jelaskan ulang dengan jelas.
+
+Agent Service (localhost:8001) adalah mesin yang bisa buat workflow. Tapi dia tidak bisa diakses user dari Chat Hub karena belum ada koneksi.
+
+Chat Hub (localhost:5678/home/chat) adalah tempat user berinteraksi. Di sidebar ada "Workflow agents" — ini pintu masuknya.
+
+Koneksinya seperti ini:
+
+
+User ketik di Chat Hub
+    ↓
+"Workflow agents" → MST Workflow Builder  (workflow bridge — dibuat SEKALI oleh admin)
+    ↓
+Agent Service /workflow/build
+    ↓
+Workflow terbuat di n8n
+    ↓
+User dapat konfirmasi di chat
+Yang perlu dilakukan SEKALI oleh kamu sebagai admin:
+
+Set credential Mistika-AI (OpenRouter key) — ini yang menyebabkan error "undefined"
+Import 1 workflow bridge — ini yang muncul di "Workflow agents" untuk user
+Setelah itu user tinggal:
+
+Klik "Workflow agents"
+Pilih "MST Workflow Builder"
+Ketik request → workflow langsung terbuat
+Mau mulai dari mana dulu:
+
+Set credential → klik "Settings" di sidebar kiri bawah → Credentials
+Phase 1 — Selesai ✅
+
+Mistika-AI provider ditambahkan
+Type safety DTO
+Chat Hub UI dibersihkan
+Bug: misikaAi missing di switch → baru kita fix sekarang
+Phase 2 — Agent Service ✅
+
+/plan/ → generate task graph
+/workflow/build → buat workflow di n8n otomatis
+/memory/ → simpan percakapan
+/tools/ → katalog node

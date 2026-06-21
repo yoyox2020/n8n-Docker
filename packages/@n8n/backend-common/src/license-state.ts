@@ -115,7 +115,7 @@ export class LicenseState {
 	}
 
 	isAdvancedPermissionsLicensed() {
-		return this.isLicensed('feat:advancedPermissions');
+		return true;
 	}
 
 	isDebugInEditorLicensed() {
@@ -151,15 +151,15 @@ export class LicenseState {
 	}
 
 	isProjectRoleAdminLicensed() {
-		return this.isLicensed('feat:projectRole:admin');
+		return true;
 	}
 
 	isProjectRoleEditorLicensed() {
-		return this.isLicensed('feat:projectRole:editor');
+		return true;
 	}
 
 	isProjectRoleViewerLicensed() {
-		return this.isLicensed('feat:projectRole:viewer');
+		return true;
 	}
 
 	isCustomNpmRegistryLicensed() {

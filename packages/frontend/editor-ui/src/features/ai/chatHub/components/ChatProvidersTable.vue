@@ -17,7 +17,7 @@ import {
 	type ChatProviderSettingsDto,
 	PROVIDER_CREDENTIAL_TYPE_MAP,
 } from '@n8n/api-types';
-import { providerDisplayNames } from '../constants';
+import { MST_ALLOWED_LLM_PROVIDERS, providerDisplayNames } from '../constants';
 import TimeAgo from '@/app/components/TimeAgo.vue';
 import CredentialIcon from '@/features/credentials/components/CredentialIcon.vue';
 
@@ -87,7 +87,9 @@ const tableActions = computed(() => [
 ]);
 
 const settingItems = computed(() => {
-	return props.settings ? Object.values(props.settings) : [];
+	return props.settings
+		? Object.values(props.settings).filter((s) => MST_ALLOWED_LLM_PROVIDERS.includes(s.provider))
+		: [];
 });
 
 const modelsText = (settings: ChatProviderSettingsDto) => {

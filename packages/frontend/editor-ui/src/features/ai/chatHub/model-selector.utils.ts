@@ -21,6 +21,7 @@ import {
 	LLM_AGGREGATORS,
 	MAX_AGENT_NAME_CHARS_MENU,
 	MAX_FLATTENED_SEARCH_RESULTS_PER_PROVIDER,
+	MST_ALLOWED_LLM_PROVIDERS,
 	NEW_AGENT_MENU_ID,
 	providerDisplayNames,
 } from './constants';
@@ -384,13 +385,15 @@ export function buildModelSelectorMenuItems(
 		menuItems.push(n8nAgentsItem);
 	}
 
-	// Move aggregators to lower
-	const sortedProviders = chatHubLLMProviderSchema.options.toSorted((a, b) => {
-		const aInt = LLM_AGGREGATORS.includes(a) ? 1 : -1;
-		const bInt = LLM_AGGREGATORS.includes(b) ? 1 : -1;
+	// Move aggregators to lower; only expose MST_ALLOWED_LLM_PROVIDERS
+	const sortedProviders = chatHubLLMProviderSchema.options
+		.filter((p) => MST_ALLOWED_LLM_PROVIDERS.includes(p))
+		.toSorted((a, b) => {
+			const aInt = LLM_AGGREGATORS.includes(a) ? 1 : -1;
+			const bInt = LLM_AGGREGATORS.includes(b) ? 1 : -1;
 
-		return aInt - bInt;
-	});
+			return aInt - bInt;
+		});
 
 	let dividerInserted = false;
 

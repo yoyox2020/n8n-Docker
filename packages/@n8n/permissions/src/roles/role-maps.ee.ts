@@ -27,6 +27,7 @@ import {
 import {
 	WORKFLOW_SHARING_OWNER_SCOPES,
 	WORKFLOW_SHARING_EDITOR_SCOPES,
+	WORKFLOW_SHARING_VIEWER_SCOPES,
 } from './scopes/workflow-sharing-scopes.ee';
 import {
 	SECRETS_PROVIDER_CONNECTION_SHARING_OWNER_SCOPES,
@@ -56,6 +57,7 @@ export const CREDENTIALS_SHARING_SCOPE_MAP: Record<CredentialSharingRole, Scope[
 export const WORKFLOW_SHARING_SCOPE_MAP: Record<WorkflowSharingRole, Scope[]> = {
 	'workflow:owner': WORKFLOW_SHARING_OWNER_SCOPES,
 	'workflow:editor': WORKFLOW_SHARING_EDITOR_SCOPES,
+	'workflow:viewer': WORKFLOW_SHARING_VIEWER_SCOPES,
 };
 
 export const SECRETS_PROVIDER_CONNECTION_SHARING_SCOPE_MAP: Record<

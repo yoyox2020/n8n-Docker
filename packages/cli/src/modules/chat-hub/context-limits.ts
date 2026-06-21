@@ -216,6 +216,7 @@ export const maxContextWindowTokens: Record<ChatHubLLMProvider, Record<string, n
 		'mistral-small-latest': 128000,
 	},
 	nvidia: {},
+	misikaAi: {},
 };
 
 const CONTEXT_WINDOW_SAFETY_FACTOR = 0.95;

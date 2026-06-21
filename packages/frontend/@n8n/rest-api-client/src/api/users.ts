@@ -224,3 +224,11 @@ export async function updateGlobalRole(
 ): Promise<IUserResponse> {
 	return await makeRestApiRequest(context, 'PATCH', `/users/${id}/role`, { newRoleName });
 }
+
+export async function toggleUserDisabled(
+	context: IRestApiContext,
+	id: string,
+	disabled: boolean,
+): Promise<{ id: string; disabled: boolean }> {
+	return await makeRestApiRequest(context, 'PATCH', `/users/${id}/disabled`, { disabled });
+}

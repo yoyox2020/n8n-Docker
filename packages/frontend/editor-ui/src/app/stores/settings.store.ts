@@ -65,10 +65,11 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, () => {
 		secureCookie: settings.value.authCookie.secure,
 	}));
 
-	// Custom RBAC fork: always enable sharing so owner can share workflows with members
+	// Custom RBAC fork: always enable sharing and advanced permissions (Admin role, Viewer role)
 	const isEnterpriseFeatureEnabled = computed(() => ({
 		...(settings.value.enterprise ?? {}),
 		sharing: true,
+		advancedPermissions: true,
 	}));
 
 	const nodeJsVersion = computed(() => settings.value.nodeJsVersion);

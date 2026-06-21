@@ -13,8 +13,8 @@
 # ─── Stage 1: Compile everything from source ──────────────────────────────────
 FROM node:24-alpine AS builder
 
-# Native-addon build tools
-RUN apk add --no-cache python3 make g++ git
+# Native-addon build tools + py3-setuptools for node-gyp@8 distutils compat
+RUN apk add --no-cache python3 py3-setuptools make g++ git
 
 # Activate the exact pnpm version declared in package.json
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
@@ -23,7 +23,7 @@ WORKDIR /build
 
 # Copy workspace manifests first so the install layer is cached when only
 # source files change.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc tsconfig.json ./
 COPY scripts/ ./scripts/
 COPY patches/ ./patches/
 COPY packages/ ./packages/
@@ -39,7 +39,7 @@ RUN pnpm install --frozen-lockfile
 # Build only n8n (packages/cli) and all its transitive workspace dependencies.
 # NODE_OPTIONS increases the V8 heap limit so tsc can compile packages/cli
 # (the largest package) without hitting the default ~2 GB limit.
-RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm exec turbo run build --filter=n8n...
+RUN NODE_OPTIONS=--max-old-space-size=3072 pnpm exec turbo run build --filter=n8n...
 
 # Create a production-only bundle: packages/cli + all its workspace deps,
 # only production node_modules, structured the way n8n expects at runtime.
@@ -48,7 +48,9 @@ RUN pnpm deploy --filter=n8n --prod --legacy /compiled
 # ─── Stage 2: Rebuild native addons against the runtime libc ──────────────────
 FROM node:24-alpine AS native-builder
 
-RUN apk add --no-cache python3 make g++
+# py3-setuptools provides the 'distutils' compatibility shim required by
+# node-gyp@8.x — Python 3.12+ removed distutils from the standard library.
+RUN apk add --no-cache python3 py3-setuptools make g++
 
 COPY --from=builder /compiled /usr/local/lib/node_modules/n8n
 
@@ -62,7 +64,7 @@ RUN cd /usr/local/lib/node_modules/n8n && npm rebuild sqlite3
 RUN if [ -d /usr/local/lib/node_modules/n8n/node_modules/isolated-vm ]; then \
       cd /usr/local/lib/node_modules/n8n/node_modules/isolated-vm && \
       rm -rf prebuilds && \
-      npx --yes node-gyp rebuild --release -j max; \
+      npx --yes node-gyp rebuild --release -j 2; \
     fi
 
 # ─── Stage 3: Minimal runtime image ───────────────────────────────────────────

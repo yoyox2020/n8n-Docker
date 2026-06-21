@@ -418,6 +418,11 @@ export const useUsersStore = defineStore(STORES.USERS, () => {
 		await fetchUsers({ filter: { ids: [id] } });
 	};
 
+	const toggleUserDisabled = async (id: string, disabled: boolean) => {
+		await usersApi.toggleUserDisabled(rootStore.restApiContext, id, disabled);
+		await fetchUsers({ filter: { ids: [id] } });
+	};
+
 	const submitContactEmail = async (email: string, agree: boolean) => {
 		if (currentUser.value) {
 			return await onboardingApi.submitEmailOnSignup(
@@ -499,6 +504,7 @@ export const useUsersStore = defineStore(STORES.USERS, () => {
 		canEnableMFA,
 		sendConfirmationEmail,
 		updateGlobalRole,
+		toggleUserDisabled,
 		setEasyAIWorkflowOnboardingDone,
 		isCalloutDismissed,
 		setCalloutDismissed,

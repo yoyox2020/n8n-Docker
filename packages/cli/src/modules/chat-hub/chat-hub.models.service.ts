@@ -162,6 +162,10 @@ export class ChatHubModelsService {
 				const rawModels = await this.fetchNvidiaModels(credentials, additionalData);
 				return { models: this.transformAndFilterModels(rawModels, 'nvidia') };
 			}
+			case 'misikaAi': {
+				const rawModels = await this.fetchMisikaAiModels(credentials, additionalData);
+				return { models: this.transformAndFilterModels(rawModels, 'misikaAi') };
+			}
 			case 'n8n':
 				return { models: await this.fetchAgentWorkflowsAsModels(user) };
 			case 'custom-agent':
@@ -502,6 +506,49 @@ export class ChatHubModelsService {
 			},
 			additionalData,
 			PROVIDER_NODE_TYPE_MAP.mistralCloud,
+			{},
+			credentials,
+		);
+	}
+
+	private async fetchMisikaAiModels(
+		credentials: INodeCredentials,
+		additionalData: IWorkflowExecuteAdditionalData,
+	): Promise<INodePropertyOptions[]> {
+		return await this.nodeParametersService.getOptionsViaLoadOptions(
+			{
+				routing: {
+					request: {
+						method: 'GET',
+						url: '/models',
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'rootProperty',
+								properties: {
+									property: 'data',
+								},
+							},
+							{
+								type: 'setKeyValue',
+								properties: {
+									name: '={{ $responseItem.id }}',
+									value: '={{ $responseItem.id }}',
+								},
+							},
+							{
+								type: 'sort',
+								properties: {
+									key: 'name',
+								},
+							},
+						],
+					},
+				},
+			},
+			additionalData,
+			PROVIDER_NODE_TYPE_MAP.misikaAi,
 			{},
 			credentials,
 		);

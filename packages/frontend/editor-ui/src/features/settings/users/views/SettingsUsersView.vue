@@ -28,22 +28,10 @@ import { hasPermission } from '@/app/utils/rbac/permissions';
 import { useClipboard } from '@/app/composables/useClipboard';
 import { useI18n } from '@n8n/i18n';
 import { useDocumentTitle } from '@/app/composables/useDocumentTitle';
-import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
 import SettingsUsersTable from '../components/SettingsUsersTable.vue';
-import { I18nT } from 'vue-i18n';
 import { useUserRoleProvisioningStore } from '@/features/settings/sso/provisioning/composables/userRoleProvisioning.store';
 import N8nAlert from '@n8n/design-system/components/N8nAlert/Alert.vue';
-import {
-	N8nActionBox,
-	N8nButton,
-	N8nHeading,
-	N8nIcon,
-	N8nInput,
-	N8nLink,
-	N8nNotice,
-	N8nText,
-	N8nTooltip,
-} from '@n8n/design-system';
+import { N8nButton, N8nHeading, N8nIcon, N8nInput, N8nText, N8nTooltip } from '@n8n/design-system';
 import { useMessage } from '@/app/composables/useMessage';
 
 const clipboard = useClipboard();
@@ -55,7 +43,6 @@ const uiStore = useUIStore();
 const usersStore = useUsersStore();
 const ssoStore = useSSOStore();
 const documentTitle = useDocumentTitle();
-const pageRedirectionHelper = usePageRedirectionHelper();
 const userRoleProvisioningStore = useUserRoleProvisioningStore();
 
 const i18n = useI18n();
@@ -110,6 +97,22 @@ const usersListActions = computed((): Array<UserAction<IUser>> => {
 				usersStore.usersLimitNotReached && !user.firstName && settingsStore.isSmtpSetup,
 		},
 		{
+			label: i18n.baseText('settings.users.actions.disableUser'),
+			value: 'disableUser',
+			guard: (user) =>
+				hasPermission(['rbac'], { rbac: { scope: 'user:update' } }) &&
+				user.id !== usersStore.currentUserId &&
+				!user.disabled,
+		},
+		{
+			label: i18n.baseText('settings.users.actions.enableUser'),
+			value: 'enableUser',
+			guard: (user) =>
+				hasPermission(['rbac'], { rbac: { scope: 'user:update' } }) &&
+				user.id !== usersStore.currentUserId &&
+				!!user.disabled,
+		},
+		{
 			label: i18n.baseText('settings.users.actions.delete'),
 			value: 'delete',
 			guard: (user) =>
@@ -162,6 +165,12 @@ const userRoles = computed((): Array<{ value: Role; label: string; disabled?: bo
 
 async function onUsersListAction({ action, userId }: { action: string; userId: string }) {
 	switch (action) {
+		case 'disableUser':
+			await onToggleDisable(userId, true);
+			break;
+		case 'enableUser':
+			await onToggleDisable(userId, false);
+			break;
 		case 'delete':
 			await onDelete(userId);
 			break;
@@ -195,6 +204,21 @@ function onInvite() {
 		},
 	});
 }
+async function onToggleDisable(userId: string, disabled: boolean) {
+	try {
+		await usersStore.toggleUserDisabled(userId, disabled);
+		showToast({
+			type: 'success',
+			title: disabled
+				? i18n.baseText('settings.users.actions.disableUser')
+				: i18n.baseText('settings.users.actions.enableUser'),
+			message: '',
+		});
+	} catch (error) {
+		showError(error, i18n.baseText('settings.users.actions.disableUser'));
+	}
+}
+
 async function onDelete(userId: string) {
 	uiStore.openModalWithData({
 		name: DELETE_USER_MODAL_KEY,
@@ -306,13 +330,6 @@ async function onDisallowSSOManualLogin(userId: string) {
 		});
 	}
 }
-function goToUpgrade() {
-	void pageRedirectionHelper.goToUpgrade('settings-users', 'upgrade-users');
-}
-function goToUpgradeAdvancedPermissions() {
-	void pageRedirectionHelper.goToUpgrade('settings-users', 'upgrade-advanced-permissions');
-}
-
 const updatingRoleUserId = ref<string | null>(null);
 
 const onUpdateRole = async (payload: { userId: string; role: Role }) => {

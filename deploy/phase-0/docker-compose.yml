@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-n8n}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-n8n}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,10 +26,10 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${N8N_PORT:-5678}:5678"
-    # env_file passes values directly to the container WITHOUT Compose variable
-    # interpolation — required because bcrypt hashes contain literal $ characters
-    # that Compose would otherwise try to expand as variable references.
+      - '${N8N_PORT:-5678}:5678'
+    # Use $$ to escape literal $ in env_file values. Compose expands $VAR where
+    # VAR starts with a letter; bcrypt's $2a/$12$ are safe (digits), but the
+    # final segment starts with a letter so must be written as $$.
     env_file:
       - .env
     environment:
@@ -47,6 +47,7 @@ services:
 networks:
   mstworkflow:
     driver: bridge
+    name: mstworkflow
 
 volumes:
   postgres_data:

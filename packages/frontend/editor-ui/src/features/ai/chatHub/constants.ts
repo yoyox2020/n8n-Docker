@@ -33,6 +33,7 @@ export const providerDisplayNames: Record<ChatHubProvider, string> = {
 	cohere: 'Cohere',
 	mistralCloud: 'Mistral Cloud',
 	nvidia: 'NVIDIA Nemotron',
+	misikaAi: 'Mistika-AI',
 	n8n: 'Workflow agent',
 	'custom-agent': 'Personal agent',
 };
@@ -57,3 +58,6 @@ export const LLM_AGGREGATORS: ChatHubLLMProvider[] = [
 	'vercelAiGateway',
 	'openRouter',
 ];
+
+// MST fork: only expose Mistika AI as the LLM provider in all UI surfaces
+export const MST_ALLOWED_LLM_PROVIDERS: ChatHubLLMProvider[] = ['misikaAi'];

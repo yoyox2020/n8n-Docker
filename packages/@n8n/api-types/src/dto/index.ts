@@ -76,6 +76,7 @@ export { SamlToggleDto } from './saml/saml-toggle.dto';
 export { PasswordUpdateRequestDto } from './user/password-update-request.dto';
 export { RoleChangeRequestDto } from './user/role-change-request.dto';
 export { SettingsUpdateRequestDto } from './user/settings-update-request.dto';
+export { ToggleUserDisabledRequestDto } from './user/toggle-user-disabled-request.dto';
 export { UserSelfSettingsUpdateRequestDto } from './user/user-self-settings-update-request.dto';
 export { UserUpdateRequestDto } from './user/user-update-request.dto';
 

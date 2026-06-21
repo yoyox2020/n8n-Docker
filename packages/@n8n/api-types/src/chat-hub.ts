@@ -33,6 +33,7 @@ export const chatHubLLMProviderSchema = z.enum([
 	'cohere',
 	'mistralCloud',
 	'nvidia',
+	'misikaAi',
 ]);
 
 export type ChatHubLLMProvider = z.infer<typeof chatHubLLMProviderSchema>;
@@ -99,6 +100,7 @@ export const PROVIDER_CREDENTIAL_TYPE_MAP: Record<ChatHubLLMProvider, string> = 
 	cohere: 'cohereApi',
 	mistralCloud: 'mistralCloudApi',
 	nvidia: 'nvidiaApi',
+	misikaAi: 'misikaAiApi',
 };
 
 export const VECTOR_STORE_PROVIDER_CREDENTIAL_TYPE_MAP: Record<ChatHubVectorStoreProvider, string> =
@@ -186,6 +188,11 @@ const nvidiaModelSchema = z.object({
 	model: z.string(),
 });
 
+const misikaAiModelSchema = z.object({
+	provider: z.literal('misikaAi'),
+	model: z.string(),
+});
+
 const n8nModelSchema = z.object({
 	provider: z.literal('n8n'),
 	workflowId: z.string(),
@@ -212,6 +219,7 @@ export const chatHubConversationModelSchema = z.discriminatedUnion('provider', [
 	cohereModelSchema,
 	mistralCloudModelSchema,
 	nvidiaModelSchema,
+	misikaAiModelSchema,
 	n8nModelSchema,
 	chatAgentSchema,
 ]);
@@ -231,6 +239,7 @@ export type ChatHubDeepSeekModel = z.infer<typeof deepSeekModelSchema>;
 export type ChatHubCohereModel = z.infer<typeof cohereModelSchema>;
 export type ChatHubMistralCloudModel = z.infer<typeof mistralCloudModelSchema>;
 export type ChatHubNvidiaModel = z.infer<typeof nvidiaModelSchema>;
+export type ChatHubMisikaAiModel = z.infer<typeof misikaAiModelSchema>;
 export type ChatHubBaseLLMModel =
 	| ChatHubOpenAIModel
 	| ChatHubAnthropicModel
@@ -246,7 +255,8 @@ export type ChatHubBaseLLMModel =
 	| ChatHubDeepSeekModel
 	| ChatHubCohereModel
 	| ChatHubMistralCloudModel
-	| ChatHubNvidiaModel;
+	| ChatHubNvidiaModel
+	| ChatHubMisikaAiModel;
 
 export type ChatHubN8nModel = z.infer<typeof n8nModelSchema>;
 export type ChatHubCustomAgentModel = z.infer<typeof chatAgentSchema>;
@@ -313,6 +323,7 @@ export const emptyChatModelsResponse: ChatModelsResponse = {
 	cohere: { models: [] },
 	mistralCloud: { models: [] },
 	nvidia: { models: [] },
+	misikaAi: { models: [] },
 	n8n: { models: [] },
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	'custom-agent': { models: [] },

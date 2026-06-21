@@ -1,6 +1,7 @@
 import {
 	RoleChangeRequestDto,
 	SettingsUpdateRequestDto,
+	ToggleUserDisabledRequestDto,
 	userDetailSchema,
 	userBaseSchema,
 	UsersListFilterDto,
@@ -212,6 +213,32 @@ export class UsersController {
 		});
 
 		return user.settings;
+	}
+
+	@Patch('/:id/disabled')
+	@GlobalScope('user:update')
+	async toggleUserDisabled(
+		req: AuthenticatedRequest,
+		_res: Response,
+		@Param('id') id: string,
+		@Body payload: ToggleUserDisabledRequestDto,
+	) {
+		if (req.user.id === id) {
+			throw new BadRequestError('Cannot change your own disabled status');
+		}
+
+		const user = await this.userRepository.findOneOrFail({
+			where: { id },
+			relations: ['role'],
+		});
+
+		if (user.role.slug === GLOBAL_OWNER_ROLE.slug) {
+			throw new BadRequestError('Cannot disable the instance owner');
+		}
+
+		await this.userRepository.update(id, { disabled: payload.disabled });
+
+		return { id, disabled: payload.disabled };
 	}
 
 	/**
