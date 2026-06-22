@@ -97,8 +97,8 @@ export const PROVIDER_NODE_TYPE_MAP: Record<ChatHubLLMProvider, INodeTypeNameVer
 		name: '@n8n/n8n-nodes-langchain.lmChatNvidia',
 		version: 1,
 	},
-	misikaAi: {
-		name: '@n8n/n8n-nodes-langchain.lmChatMisikaAi',
+	mistikaAi: {
+		name: '@n8n/n8n-nodes-langchain.lmChatMistikaAi',
 		version: 1,
 	},
 };

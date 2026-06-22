@@ -4,10 +4,11 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-n8n}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required — run scripts/provision.ps1}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-n8n}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-n8n}']
       interval: 5s
@@ -27,20 +28,34 @@ services:
         condition: service_healthy
     ports:
       - '${N8N_PORT:-5678}:5678'
-    # Use $$ to escape literal $ in env_file values. Compose expands $VAR where
-    # VAR starts with a letter; bcrypt's $2a/$12$ are safe (digits), but the
-    # final segment starts with a letter so must be written as $$.
     env_file:
       - .env
     environment:
-      # DB connection overrides: these must use Docker service name "postgres"
-      # which cannot be known at .env generation time.
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: 5432
       DB_POSTGRESDB_USER: ${POSTGRES_USER:-n8n}
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n}
+    networks:
+      - mstworkflow
+
+  mst-agent-service:
+    build:
+      context: ../../services/mst-agent
+      dockerfile: Dockerfile
+    image: mstworkflow/mst-agent:latest
+    container_name: mst-agent-service
+    restart: unless-stopped
+    ports:
+      - '${AGENT_PORT:-8001}:8000'
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-n8n}:${POSTGRES_PASSWORD}@postgres:5432/agentdb
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - mstworkflow
 
@@ -51,4 +66,3 @@ networks:
 
 volumes:
   postgres_data:
-  n8n_data:

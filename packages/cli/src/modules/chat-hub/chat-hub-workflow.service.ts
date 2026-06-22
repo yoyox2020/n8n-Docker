@@ -904,7 +904,7 @@ ${this.getSystemMessageMetadata(timeZone) + artifactContext}`;
 					},
 				};
 			}
-			case 'misikaAi': {
+			case 'mistikaAi': {
 				return {
 					...common,
 					parameters: {

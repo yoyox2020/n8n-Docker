@@ -15,6 +15,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ChatSessionMenuItem from './ChatSessionMenuItem.vue';
 import SkeletonMenuItem from './SkeletonMenuItem.vue';
+import ActivitySidebar from './ActivitySidebar.vue';
 import { useTelemetry } from '@/app/composables/useTelemetry';
 import { type ChatHubSessionDto } from '@n8n/api-types';
 import { useI18n } from '@n8n/i18n';
@@ -172,6 +173,10 @@ onMounted(() => {
 				:active="route.name === CHAT_WORKFLOW_AGENTS_VIEW"
 			/>
 		</div>
+
+		<!-- Aktivitas terakhir: workflow yang dibuat + approval pending -->
+		<ActivitySidebar :is-collapsed="isCollapsed" />
+
 		<N8nScrollArea as-child type="scroll">
 			<div
 				:class="[$style.historySections, { [$style.collapsed]: isCollapsed }]"

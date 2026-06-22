@@ -162,9 +162,9 @@ export class ChatHubModelsService {
 				const rawModels = await this.fetchNvidiaModels(credentials, additionalData);
 				return { models: this.transformAndFilterModels(rawModels, 'nvidia') };
 			}
-			case 'misikaAi': {
-				const rawModels = await this.fetchMisikaAiModels(credentials, additionalData);
-				return { models: this.transformAndFilterModels(rawModels, 'misikaAi') };
+			case 'mistikaAi': {
+				const rawModels = await this.fetchMistikaAiModels(credentials, additionalData);
+				return { models: this.transformAndFilterModels(rawModels, 'mistikaAi') };
 			}
 			case 'n8n':
 				return { models: await this.fetchAgentWorkflowsAsModels(user) };
@@ -511,7 +511,7 @@ export class ChatHubModelsService {
 		);
 	}
 
-	private async fetchMisikaAiModels(
+	private async fetchMistikaAiModels(
 		credentials: INodeCredentials,
 		additionalData: IWorkflowExecuteAdditionalData,
 	): Promise<INodePropertyOptions[]> {
@@ -548,7 +548,7 @@ export class ChatHubModelsService {
 				},
 			},
 			additionalData,
-			PROVIDER_NODE_TYPE_MAP.misikaAi,
+			PROVIDER_NODE_TYPE_MAP.mistikaAi,
 			{},
 			credentials,
 		);

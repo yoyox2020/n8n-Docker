@@ -2,7 +2,7 @@
 
 > Ringkasan analisa per-phase berdasarkan roadmap `phase-1-to-phase-4.md`
 > dibandingkan dengan kode di branch `modifikasi`.
-> Dibuat: 2026-06-18
+> Dibuat: 2026-06-18 | Terakhir update: 2026-06-22
 
 ---
 
@@ -11,9 +11,9 @@
 ```
 Phase 0   [████████████████████] 100% — Done
 Phase 1   [████████░░░░░░░░░░░░]  40% — Sebagian done, beberapa perlu konfirmasi
-Phase 2   [░░░░░░░░░░░░░░░░░░░░]   0% — Belum dimulai
-Phase 3   [░░░░░░░░░░░░░░░░░░░░]   0% — Belum dimulai
-Phase 4   [░░░░░░░░░░░░░░░░░░░░]   0% — Belum dimulai
+Phase 2   [████████████████████] 100% — Agent Service selesai (FastAPI + DB + LLM)
+Phase 3   [████████████████████] 100% — Chat Hub terintegrasi, workflow bisa dibuat via chat
+Phase 4   [████████████░░░░░░░░]  60% — Agent Node + Approval + Memory selesai, perlu test
 ```
 
 ---
@@ -82,47 +82,56 @@ Lihat detail: [docs/phase-status-phase-1.md](./phase-status-phase-1.md)
 
 ---
 
-## Phase 2 — Agent Service ❌ Belum Dimulai
+## Phase 2 — Agent Service ✅ Selesai
 
-Service Python terpisah (FastAPI + PostgreSQL + Redis).
+Repo terpisah: `C:\Users\Acer\n8n-mst-Agent`
 
-**Komponen:**
-- Planner: Natural Language → Task Graph
-- Memory: Conversation + Workflow History
-- Tool Registry: Gmail, WhatsApp, Slack, HTTP, dll
+| Komponen | Status |
+|----------|--------|
+| FastAPI app + CORS + lifespan | ✅ Done |
+| Planner: `POST /plan/` → LLM → Task Graph | ✅ Done |
+| Memory: `GET/POST /memory/` → PostgreSQL | ✅ Done |
+| Tool Registry: `GET /tools/` → 54 node catalog | ✅ Done |
+| Workflow Builder: `POST /workflow/build` → buat workflow di n8n | ✅ Done |
+| Workflow History: simpan riwayat per user | ✅ Done (2026-06-22) |
+| Runtime Decision: `POST /runtime/decide` | ✅ Done (2026-06-22) |
+| Approval CRUD: `GET/POST /approval/` | ✅ Done (2026-06-22) |
+| Last Activity: `GET /memory/{id}/last-activity` | ✅ Done (2026-06-22) |
 
-**Pertanyaan sebelum mulai:**
-1. Repository terpisah atau di dalam monorepo ini?
-2. Bagaimana integrasi ke Mistika LLM?
-3. Phase 1 harus selesai dulu?
-
-Lihat detail: [docs/phase-status-phase-2.md](./phase-status-phase-2.md)
-
----
-
-## Phase 3 — Chat To Workflow ❌ Belum Dimulai
-
-Tergantung: Phase 2 selesai dulu.
-
-**Komponen:**
-- Agent Builder UI (panel di canvas n8n)
-- Workflow Generator (Task Graph → n8n JSON)
-- Canvas Integration (import tanpa reload)
-
-Lihat detail: [docs/phase-status-phase-3.md](./phase-status-phase-3.md)
+Lihat detail: [phase-2-chat-hub-integrasi.md](./phase-2-chat-hub-integrasi.md)
 
 ---
 
-## Phase 4 — Agent Runtime ❌ Belum Dimulai
+## Phase 3 — Chat To Workflow ✅ Selesai
 
-Tergantung: Phase 2 selesai dulu.
+Chat Hub di n8n terintegrasi penuh dengan Agent Service.
 
-**Komponen:**
-- Agent Node (custom n8n node baru)
-- Human Approval (pause workflow + notifikasi + approve/reject)
-- Runtime audit trail
+| Komponen | Status |
+|----------|--------|
+| Keyword detection (`buatkan workflow`, dll) | ✅ Done |
+| `mst-agent.service.ts` — bridge n8n ↔ Agent Service | ✅ Done |
+| `chat-hub.service.ts` — intercept chat message | ✅ Done |
+| Workflow Generator (Task Graph → n8n JSON) | ✅ Done |
+| Auto-create workflow via n8n Public API | ✅ Done |
+| Provider `misikaAi` di chat-hub-workflow.service | ✅ Done |
 
-Lihat detail: [docs/phase-status-phase-4.md](./phase-status-phase-4.md)
+Lihat detail: [phase-2-chat-hub-integrasi.md](./phase-2-chat-hub-integrasi.md)
+
+---
+
+## Phase 4 — Agent Runtime 🔶 Sebagian Selesai
+
+| Komponen | Status |
+|----------|--------|
+| Custom node `AgentMST` (3 output: decided/needs_approval/error) | ✅ Done (2026-06-22) |
+| Agent Node register di n8n | ✅ Done (2026-06-22) |
+| Human Approval (create + respond + status) | ✅ Done (2026-06-22) |
+| Activity Sidebar di Chat Hub (workflow + approval) | ✅ Done (2026-06-22) |
+| Polling approval di Agent Node | ✅ Done (2026-06-22) |
+| Notifikasi in-app saat ada approval baru | ❌ Belum |
+| Runtime audit trail (export log per eksekusi) | ❌ Belum |
+
+Lihat detail: [phase-4-agent-runtime-dan-fix.md](./phase-4-agent-runtime-dan-fix.md)
 
 ---
 

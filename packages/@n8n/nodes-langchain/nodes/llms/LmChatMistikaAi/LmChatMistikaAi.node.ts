@@ -16,10 +16,10 @@ import {
 import type { OpenAICompatibleCredential } from '../../../types/types';
 import { openAiFailedAttemptHandler } from '../../vendors/OpenAi/helpers/error-handling';
 
-export class LmChatMisikaAi implements INodeType {
+export class LmChatMistikaAi implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Mistika-AI Chat Model',
-		name: 'lmChatMisikaAi',
+		name: 'lmChatMistikaAi',
 		icon: 'fa:robot',
 		group: ['transform'],
 		version: [1],
@@ -44,7 +44,7 @@ export class LmChatMisikaAi implements INodeType {
 		outputNames: ['Model'],
 		credentials: [
 			{
-				name: 'misikaAiApi',
+				name: 'mistikaAiApi',
 				required: true,
 			},
 		],
@@ -57,48 +57,11 @@ export class LmChatMisikaAi implements INodeType {
 			{
 				displayName: 'Model',
 				name: 'model',
-				type: 'options',
-				description: 'The model which will generate the completion.',
-				typeOptions: {
-					loadOptions: {
-						routing: {
-							request: {
-								method: 'GET',
-								url: '/models',
-							},
-							output: {
-								postReceive: [
-									{
-										type: 'rootProperty',
-										properties: {
-											property: 'data',
-										},
-									},
-									{
-										type: 'setKeyValue',
-										properties: {
-											name: '={{$responseItem.id}}',
-											value: '={{$responseItem.id}}',
-										},
-									},
-									{
-										type: 'sort',
-										properties: {
-											key: 'name',
-										},
-									},
-								],
-							},
-						},
-					},
-				},
-				routing: {
-					send: {
-						type: 'body',
-						property: 'model',
-					},
-				},
-				default: '',
+				type: 'string',
+				description:
+					'Nama model yang digunakan. Contoh: deepseek/deepseek-v4-flash. Tanyakan ke admin Mistika untuk nama model yang tersedia.',
+				default: 'deepseek/deepseek-v4-flash',
+				required: true,
 			},
 			{
 				displayName: 'Options',
@@ -175,7 +138,13 @@ export class LmChatMisikaAi implements INodeType {
 	};
 
 	async supplyData(this: ISupplyDataFunctions, itemIndex: number): Promise<SupplyData> {
-		const credentials = await this.getCredentials<OpenAICompatibleCredential>('misikaAiApi');
+		const raw = await this.getCredentials<
+			OpenAICompatibleCredential & {
+				chatPath?: string;
+				skipSslVerification?: boolean;
+				authType?: 'bearer' | 'x-api-key';
+			}
+		>('mistikaAiApi');
 
 		const modelName = this.getNodeParameter('model', itemIndex) as string;
 
@@ -190,19 +159,45 @@ export class LmChatMisikaAi implements INodeType {
 		};
 
 		const timeout = options.timeout;
+
+		const chatPath = raw.chatPath ?? '/chat/completions';
+		const skipSsl = raw.skipSslVerification ?? false;
+		const authType = raw.authType ?? 'bearer';
+
+		let dispatcher = getProxyAgent(raw.url, {
+			headersTimeout: timeout,
+			bodyTimeout: timeout,
+		});
+		if (skipSsl) {
+			const { Agent } = await import('undici');
+			dispatcher = new Agent({ connect: { rejectUnauthorized: false } });
+		}
+
+		// Set auth header based on form selection: bearer for OpenRouter/OpenAI, x-api-key for Mistika.
+		const authHeaders =
+			authType === 'x-api-key'
+				? { 'x-api-key': raw.apiKey, Authorization: '' }
+				: { Authorization: `Bearer ${raw.apiKey}` };
+
 		const configuration: ClientOptions = {
-			baseURL: credentials.url,
-			fetchOptions: {
-				dispatcher: getProxyAgent(credentials.url, {
-					headersTimeout: timeout,
-					bodyTimeout: timeout,
-				}),
-			},
+			baseURL: raw.url,
+			defaultHeaders: authHeaders,
+			...(chatPath !== '/chat/completions'
+				? {
+						fetch: async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+							const rewritten = String(url).replace('/chat/completions', chatPath);
+							return globalThis.fetch(rewritten, {
+								...init,
+								dispatcher,
+							} as RequestInit);
+						},
+					}
+				: { fetchOptions: { dispatcher } }),
 		};
 
 		const model = new ChatOpenAI({
-			apiKey: credentials.apiKey,
-			model: modelName,
+			apiKey: raw.apiKey,
+			model: modelName || 'deepseek/deepseek-v4-flash',
 			...options,
 			timeout,
 			maxRetries: options.maxRetries ?? 2,
