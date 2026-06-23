@@ -91,41 +91,23 @@ async def _call_mistika(messages: list[dict]) -> str:
         "temperature": 0.2,
         "top_p": 1.0,
         "max_tokens": 4096,
-        "stream": True,
+        "stream": False,  # non-streaming lebih stabil untuk request panjang
     }
-
-    collected_text = []
 
     async with httpx.AsyncClient(timeout=120) as client:
         try:
-            async with client.stream("POST", url, headers=headers, json=payload) as resp:
-                # Read body before raising so error message is accessible in streaming context
-                if resp.status_code >= 400:
-                    await resp.aread()
-                    raise HTTPException(
-                        status_code=502,
-                        detail=f"LLM error {resp.status_code}: {resp.text}",
-                    )
-                async for line in resp.aiter_lines():
-                    if not line.startswith("data:"):
-                        continue
-                    chunk = line[5:].strip()
-                    if chunk == "[DONE]":
-                        break
-                    try:
-                        data = json.loads(chunk)
-                        delta = data["choices"][0].get("delta", {})
-                        text = delta.get("content", "")
-                        if text:
-                            collected_text.append(text)
-                    except (json.JSONDecodeError, KeyError, IndexError):
-                        continue
+            resp = await client.post(url, headers=headers, json=payload)
+            if resp.status_code >= 400:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"LLM error {resp.status_code}: {resp.text[:300]}",
+                )
+            data = resp.json()
+            return data["choices"][0]["message"]["content"]
         except HTTPException:
             raise
         except Exception as exc:
-            raise HTTPException(status_code=502, detail=f"Failed to reach LLM: {exc}")
-
-    return "".join(collected_text)
+            raise HTTPException(status_code=502, detail=f"Failed to reach LLM: {type(exc).__name__}: {exc}")
 
 
 async def _save_turn(user_id: str, session_id: str | None, role: str, content: str, db: AsyncSession):

@@ -631,6 +631,25 @@ export class ChatHubService {
 		} catch (error) {
 			const errorMsg = error instanceof Error ? error.message : 'Failed to build workflow';
 			this.logger.error(`Agent workflow request failed: ${errorMsg}`);
+
+			// Kirim pesan error ke user supaya chat tidak menggantung
+			const errContent = `Maaf, gagal membuat workflow. Silakan coba lagi.\n\n_Error: ${errorMsg}_`;
+			try {
+				await this.messageRepository.createAIMessage({
+					id: aiMessageId,
+					sessionId,
+					previousMessageId,
+					content: errContent,
+					model,
+					retryOfMessageId: null,
+					status: 'error',
+				});
+				await this.chatStreamService.sendChunk(sessionId, aiMessageId, errContent);
+				await this.chatStreamService.endStream(sessionId, aiMessageId, 'error');
+			} catch {
+				// Jika stream sudah tertutup, abaikan
+			}
+
 			await this.chatStreamService.endExecution(user.id, sessionId, 'error');
 		}
 	}

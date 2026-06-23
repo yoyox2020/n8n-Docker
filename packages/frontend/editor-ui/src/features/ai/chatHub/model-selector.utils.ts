@@ -54,12 +54,7 @@ function matchesSearch(item: MenuItem, query: string) {
 function isSpecialMenuItem(item: MenuItem): boolean {
 	// Check if the ID matches special menu item patterns
 	const id = item.id;
-	if (
-		id.endsWith('::configure') ||
-		id.endsWith('::add-model') ||
-		id.endsWith('::error') ||
-		id.endsWith('::loading')
-	) {
+	if (id.endsWith('::add-model') || id.endsWith('::error') || id.endsWith('::loading')) {
 		return true;
 	}
 
@@ -229,25 +224,16 @@ function buildLlmProviderMenuItem(
 		return null;
 	}
 
-	const configureMenu = {
-		id: `${provider}::configure`,
-		icon: { type: 'icon' as const, value: 'settings' as const },
-		label: i18n.baseText('chatHub.agent.configureCredentials'),
-		disabled: false,
-	};
-
 	if (isLoading) {
 		return {
 			id: provider,
 			label: providerDisplayNames[provider],
 			data: { provider },
 			children: [
-				configureMenu,
 				{
 					id: `${provider}::loading`,
 					label: i18n.baseText('generic.loadingEllipsis'),
 					disabled: true,
-					divided: true,
 				},
 			],
 		};
@@ -275,15 +261,14 @@ function buildLlmProviderMenuItem(
 
 						const item = agentToMenuItem(agent);
 
-						return [index === 0 ? { ...item, divided: true } : item];
+						return [index === 0 ? { ...item } : item];
 					})
 					.filter((item, index, self) => self.findIndex((i) => i.id === item.id) === index)
 			: error
-				? [{ id: `${provider}::error`, divided: true, disabled: true, label: error }]
+				? [{ id: `${provider}::error`, disabled: true, label: error }]
 				: [];
 
 	const children = [
-		configureMenu,
 		...agentOptions,
 		...((agentOptions.length > 0 || !!credentials?.[provider]) &&
 		providerSettings?.allowedModels.length === 0
@@ -293,7 +278,7 @@ function buildLlmProviderMenuItem(
 						icon: { type: 'icon' as const, value: 'plus' as const },
 						label: i18n.baseText('chatHub.agent.addModel'),
 						disabled: false,
-						divided: true,
+						divided: agentOptions.length > 0,
 					},
 				]
 			: []),

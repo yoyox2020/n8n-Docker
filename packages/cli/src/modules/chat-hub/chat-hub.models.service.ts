@@ -515,43 +515,53 @@ export class ChatHubModelsService {
 		credentials: INodeCredentials,
 		additionalData: IWorkflowExecuteAdditionalData,
 	): Promise<INodePropertyOptions[]> {
-		return await this.nodeParametersService.getOptionsViaLoadOptions(
-			{
-				routing: {
-					request: {
-						method: 'GET',
-						url: '/models',
-					},
-					output: {
-						postReceive: [
-							{
-								type: 'rootProperty',
-								properties: {
-									property: 'data',
+		// Coba panggil GET /models — berhasil jika menggunakan OpenRouter (ada endpoint-nya).
+		// Mistika internal tidak punya endpoint ini, jadi akan gagal → fallback ke model default.
+		try {
+			const models = await this.nodeParametersService.getOptionsViaLoadOptions(
+				{
+					routing: {
+						request: {
+							method: 'GET',
+							url: '/models',
+						},
+						output: {
+							postReceive: [
+								{
+									type: 'rootProperty',
+									properties: { property: 'data' },
 								},
-							},
-							{
-								type: 'setKeyValue',
-								properties: {
-									name: '={{ $responseItem.id }}',
-									value: '={{ $responseItem.id }}',
+								{
+									type: 'setKeyValue',
+									properties: {
+										name: '={{ $responseItem.id }}',
+										value: '={{ $responseItem.id }}',
+									},
 								},
-							},
-							{
-								type: 'sort',
-								properties: {
-									key: 'name',
+								{
+									type: 'sort',
+									properties: { key: 'name' },
 								},
-							},
-						],
+							],
+						},
 					},
 				},
-			},
-			additionalData,
-			PROVIDER_NODE_TYPE_MAP.mistikaAi,
-			{},
-			credentials,
-		);
+				additionalData,
+				PROVIDER_NODE_TYPE_MAP.mistikaAi,
+				{},
+				credentials,
+			);
+
+			if (models.length > 0) {
+				// OpenRouter: tampilkan daftar model untuk dipilih
+				return models;
+			}
+		} catch {
+			// Mistika tidak punya endpoint /models — lanjut ke model default
+		}
+
+		// Mistika internal: model ditentukan otomatis oleh server
+		return [{ name: 'Mistika AI (default)', value: 'deepseek/deepseek-v4-flash' }];
 	}
 
 	private async fetchCohereModels(

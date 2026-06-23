@@ -24,7 +24,9 @@ export class MistikaAiApi implements ICredentialType {
 			name: 'url',
 			type: 'string',
 			required: true,
-			default: 'https://openrouter.ai/api/v1',
+			default: 'https://misstika.mst.co.id/llm-router',
+			description:
+				'URL dasar tanpa path endpoint. Mistika: https://misstika.mst.co.id/llm-router | OpenRouter: https://openrouter.ai/api/v1',
 		},
 		{
 			displayName: 'Auth Type',
@@ -32,25 +34,36 @@ export class MistikaAiApi implements ICredentialType {
 			type: 'options',
 			options: [
 				{
-					name: 'Authorization: Bearer (OpenRouter / OpenAI)',
-					value: 'bearer',
-				},
-				{
 					name: 'x-api-key (Mistika internal)',
 					value: 'x-api-key',
 				},
+				{
+					name: 'Authorization: Bearer (OpenRouter / OpenAI)',
+					value: 'bearer',
+				},
 			],
-			default: 'bearer',
-			description: 'How the API key is sent to the provider.',
+			default: 'x-api-key',
+			description: 'Cara API key dikirim. Mistika pakai x-api-key, OpenRouter/OpenAI pakai Bearer.',
 		},
 		{
 			displayName: 'Chat Path',
 			name: 'chatPath',
 			type: 'string',
 			required: true,
-			default: '/chat/completions',
+			default: '/chat/streamchat',
 			description:
-				'Endpoint path. Use /chat/completions for OpenRouter/OpenAI. Use /chat/streamchat for Mistika.',
+				'Path endpoint chat. Mistika: /chat/streamchat | OpenRouter/OpenAI: /chat/completions',
+		},
+		{
+			displayName: 'Default Model',
+			name: 'defaultModel',
+			type: 'string',
+			default: '',
+			placeholder: 'contoh: deepseek/deepseek-v4-flash',
+			description:
+				'Model yang dipakai saat test koneksi dan sebagai default. ' +
+				'OpenRouter/OpenAI: wajib diisi, contoh deepseek/deepseek-v4-flash atau gpt-4o-mini. ' +
+				'Mistika: isi nama model Mistika yang tersedia, atau kosongkan jika server auto-pilih model.',
 		},
 		{
 			displayName: 'Skip SSL Verification',
@@ -62,22 +75,39 @@ export class MistikaAiApi implements ICredentialType {
 		},
 	];
 
+	// authenticate dipakai oleh HTTP Request node biasa — bukan oleh LmChatMistikaAi
+	// (node LmChatMistikaAi set header sendiri di supplyData)
 	authenticate: IAuthenticateGeneric = {
 		type: 'generic',
 		properties: {
 			headers: {
-				Authorization: '=Bearer {{$credentials.apiKey}}',
+				// Kirim header yang sesuai authType yang dipilih user
+				Authorization:
+					'={{ $credentials.authType === "x-api-key" ? "" : "Bearer " + $credentials.apiKey }}',
+				'x-api-key': '={{ $credentials.authType === "x-api-key" ? $credentials.apiKey : "" }}',
 			},
 		},
 	};
 
 	test: ICredentialTestRequest = {
 		request: {
+			// Base URL tidak boleh include path endpoint — hanya domain + prefix
+			// Contoh benar: https://misstika.mst.co.id/llm-router
 			baseURL: '={{ $credentials.url }}',
+			// Chat Path adalah sisa path endpoint
+			// Contoh benar untuk Mistika: /chat/streamchat
 			url: '={{ $credentials.chatPath }}',
 			method: 'POST',
+			headers: {
+				// Override auth header di test request agar sesuai authType
+				Authorization:
+					'={{ $credentials.authType === "x-api-key" ? "" : "Bearer " + $credentials.apiKey }}',
+				'x-api-key': '={{ $credentials.authType === "x-api-key" ? $credentials.apiKey : "" }}',
+			},
 			body: {
+				model: '={{ $credentials.defaultModel }}',
 				messages: [{ role: 'user', content: 'ping' }],
+				max_tokens: 1,
 			},
 			skipSslCertificateValidation: true,
 		},

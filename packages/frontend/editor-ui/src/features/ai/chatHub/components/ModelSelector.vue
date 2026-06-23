@@ -159,11 +159,6 @@ function onSelect(id: string) {
 		return;
 	}
 
-	if (identifier === 'configure' && isLlmProviderModel(parsedModel)) {
-		openCredentialsSelectorOrCreate(parsedModel.provider);
-		return;
-	}
-
 	if (identifier === 'add-model' && isLlmProviderModel(parsedModel)) {
 		openModelByIdSelector(parsedModel.provider);
 		return;

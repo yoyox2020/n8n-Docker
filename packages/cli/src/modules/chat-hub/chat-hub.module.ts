@@ -10,8 +10,15 @@ export class ChatHubModule implements ModuleInterface {
 		await import('./chat-hub.controller');
 		await import('./chat-hub.settings.controller');
 		const { ChatHubEventRelay } = await import('./chat-hub-event-relay.service');
+		const { MistikaCredentialProvisionService } = await import(
+			'./mistika-credential-provision.service'
+		);
 
 		Container.get(ChatHubEventRelay);
+
+		// Auto-provision credential mistikaAiApi dari MISTIKA_* env vars
+		// sehingga dashboard external cukup set .env sekali, semua fitur langsung berjalan
+		await Container.get(MistikaCredentialProvisionService).provisionFromEnv();
 
 		// In queue mode, only workers process Chat hub execution lifecycle events.
 		// Skip initializing the watcher on main instance to avoid unnecessary event subscriptions.

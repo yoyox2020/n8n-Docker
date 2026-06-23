@@ -31,7 +31,16 @@ NODE_VERSIONS: dict[str, int] = {
 }
 
 
-def _task_graph_to_workflow_json(name: str, task_graph: list[dict]) -> dict:
+# Node types yang butuh mistikaAiApi credential
+MISTIKA_AI_NODE_TYPES = {
+    "@n8n/n8n-nodes-langchain.lmChatMistikaAi",
+    "@n8n/n8n-nodes-langchain.agent",
+}
+
+
+def _task_graph_to_workflow_json(
+    name: str, task_graph: list[dict], mistika_credential: dict | None = None
+) -> dict:
     """Convert a task_graph list into a valid n8n workflow JSON."""
     nodes = []
     connections: dict = {}
@@ -41,6 +50,11 @@ def _task_graph_to_workflow_json(name: str, task_graph: list[dict]) -> dict:
         node_name = step["display_name"]
         node_id = str(uuid.uuid4())
 
+        # Auto-assign credential Mistika ke node AI jika tersedia
+        credentials: dict = {}
+        if mistika_credential and node_type in MISTIKA_AI_NODE_TYPES:
+            credentials = {"mistikaAiApi": mistika_credential}
+
         nodes.append({
             "id": node_id,
             "name": node_name,
@@ -48,7 +62,7 @@ def _task_graph_to_workflow_json(name: str, task_graph: list[dict]) -> dict:
             "typeVersion": NODE_VERSIONS.get(node_type, 1),
             "position": [250 + i * 250, 300],
             "parameters": {},
-            "credentials": {},
+            "credentials": credentials,
         })
 
         # Connect this node to the next one (linear chain)
@@ -67,8 +81,27 @@ def _task_graph_to_workflow_json(name: str, task_graph: list[dict]) -> dict:
     }
 
 
+async def _get_mistika_credential_id() -> dict | None:
+    """Ambil credential mistikaAiApi pertama dari n8n — dipakai untuk auto-assign ke workflow nodes."""
+    url = f"{settings.n8n_base_url}/api/v1/credentials"
+    headers = {"X-N8N-API-KEY": settings.n8n_api_key}
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        try:
+            resp = await client.get(url, headers=headers)
+            resp.raise_for_status()
+            credentials = resp.json().get("data", [])
+            # Cari credential pertama bertipe mistikaAiApi
+            for cred in credentials:
+                if cred.get("type") == "mistikaAiApi":
+                    return {"id": cred["id"], "name": cred["name"]}
+        except Exception:
+            pass
+    return None
+
+
 async def _create_workflow_in_n8n(workflow_json: dict) -> dict:
-    """POST workflow JSON to n8n public API and return the created workflow."""
+    """POST workflow JSON ke n8n public API dan kembalikan workflow yang dibuat."""
     url = f"{settings.n8n_base_url}/api/v1/workflows"
     headers = {
         "X-N8N-API-KEY": settings.n8n_api_key,
@@ -133,8 +166,10 @@ async def build_workflow(payload: BuildWorkflowRequest, db: AsyncSession = Depen
     if not task_graph:
         raise HTTPException(status_code=422, detail="LLM returned empty task_graph")
 
-    # 4. Convert task_graph to n8n workflow JSON and create it
-    workflow_json = _task_graph_to_workflow_json(workflow_name, task_graph)
+    # 4. Ambil credential mistikaAiApi dari n8n lalu buat workflow
+    # Credential ini otomatis di-assign ke node AI — user tidak perlu pilih manual
+    mistika_credential = await _get_mistika_credential_id()
+    workflow_json = _task_graph_to_workflow_json(workflow_name, task_graph, mistika_credential)
     created = await _create_workflow_in_n8n(workflow_json)
 
     workflow_id = str(created.get("id", ""))

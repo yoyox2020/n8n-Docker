@@ -240,4 +240,3 @@ set MISTIKA_API_KEY=your-key
 uvicorn app.main:app --reload --port 8000
 ```
 
-ganti API key lagi: edit baris MISTIKA_API_KEY di deploy/phase-0/.env, lalu jalankan docker compose up -d mst-agent-service dari folder deploy/phase-0/.
