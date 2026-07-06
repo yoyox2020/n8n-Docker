@@ -491,8 +491,14 @@ export class ChatHubService {
 		const credentialId = this.getModelCredential(model, credentials);
 
 		let processedAttachments: IBinaryData[] = [];
-		let workflow: PreparedChatWorkflow;
+		let workflow: PreparedChatWorkflow | null = null;
 		let previousMessage: ChatHubMessage | undefined;
+
+		// Closure variables: set inside the transaction when an MST intent is detected.
+		// Avoids calling prepareReplyWorkflow (which can fail for Mistika-AI model config) for
+		// approval/revision/workflow-builder messages that don't need workflow execution.
+		let mstApprovalResult: ReturnType<MstAgentService['parseApprovalResponse']> | undefined;
+		let mstIntentType: 'confirm' | 'revision' | 'workflow' | undefined;
 
 		try {
 			const result = await this.messageRepository.manager.transaction(async (trx) => {
@@ -539,6 +545,35 @@ export class ChatHubService {
 					trx,
 				);
 
+				// MST early exit: detect intent BEFORE prepareReplyWorkflow.
+				// prepareReplyWorkflow can throw when Mistika-AI model config is missing/invalid.
+				// For these special intents, workflow execution is not needed at all.
+				const mstAprv = this.mstAgentService.parseApprovalResponse(message);
+				if (mstAprv.isApproval) {
+					mstApprovalResult = mstAprv;
+					return { workflow: null, previousMessage };
+				}
+				// After the early return above, TypeScript narrows mstAprv to { isApproval: false; hint?: string }
+				if (mstAprv.hint) {
+					mstApprovalResult = mstAprv;
+					return { workflow: null, previousMessage };
+				}
+				if (
+					this.mstAgentService.hasPendingWorkflow(sessionId) &&
+					this.mstAgentService.isConfirmation(message)
+				) {
+					mstIntentType = 'confirm';
+					return { workflow: null, previousMessage };
+				}
+				if (this.mstAgentService.isRevisionRequest(message)) {
+					mstIntentType = 'revision';
+					return { workflow: null, previousMessage };
+				}
+				if (this.mstAgentService.isWorkflowRequest(message)) {
+					mstIntentType = 'workflow';
+					return { workflow: null, previousMessage };
+				}
+
 				// Resolve tool definitions from the session's join table
 				const tools = isNewSession
 					? (await this.chatHubToolService.getEnabledTools(user.id, trx)).map((t) => t.definition)
@@ -574,11 +609,8 @@ export class ChatHubService {
 			throw error;
 		}
 
-		if (!workflow) {
-			throw new UnexpectedError('Failed to prepare chat workflow.');
-		}
-
-		// Broadcast human message to all user connections for cross-client sync
+		// Broadcast human message to all user connections for cross-client sync.
+		// Done before MST intent handling so the user's message always appears in chat.
 		await this.chatStreamService.sendHumanMessage({
 			userId: user.id,
 			sessionId,
@@ -592,51 +624,49 @@ export class ChatHubService {
 			})),
 		});
 
-		// MST: cek dulu apakah pesan adalah respons approval ("setuju <id>" / "tolak <id>")
-		const approvalParse = this.mstAgentService.parseApprovalResponse(message);
-		if (approvalParse.isApproval) {
-			void this.handleApprovalResponse(
-				user,
-				sessionId,
-				messageId,
-				approvalParse.id,
-				approvalParse.decision,
-				model,
-			);
-			return;
+		// MST intent routing: use closure variables set inside the transaction.
+		// These intents exit early without running prepareReplyWorkflow, so workflow is null here.
+		if (mstApprovalResult) {
+			if (mstApprovalResult.isApproval) {
+				void this.handleApprovalResponse(
+					user,
+					sessionId,
+					messageId,
+					mstApprovalResult.id,
+					mstApprovalResult.decision,
+					model,
+				);
+				return;
+			}
+			// TypeScript narrows here: isApproval is false, so hint?: string is accessible
+			if (mstApprovalResult.hint) {
+				void this.sendSimpleAIMessage(user, sessionId, messageId, mstApprovalResult.hint, model);
+				return;
+			}
 		}
-		// User ketik "setuju"/"tolak" tanpa ID — beri petunjuk
-		if (!approvalParse.isApproval && approvalParse.hint) {
-			void this.sendSimpleAIMessage(user, sessionId, messageId, approvalParse.hint, model);
-			return;
-		}
-
-		// MST: user konfirmasi ("lanjut", "ya", "oke") setelah melihat tool suggestions
-		if (
-			this.mstAgentService.hasPendingWorkflow(sessionId) &&
-			this.mstAgentService.isConfirmation(message)
-		) {
+		if (mstIntentType === 'confirm') {
 			const pending = this.mstAgentService.popPendingWorkflow(sessionId);
 			if (pending) {
 				void this.handleAgentWorkflowRequest(user, sessionId, messageId, pending.prompt, model);
 				return;
 			}
 		}
-
-		// MST: user mengetik "revisi" / "ubah" / "revise" / "modify" singkat tanpa detail — minta penjelasan
-		if (this.mstAgentService.isRevisionRequest(message)) {
+		if (mstIntentType === 'revision') {
 			const hint = this.mstAgentService.hasPendingWorkflow(sessionId)
 				? 'Anda ingin merevisi permintaan sebelumnya / You want to revise the previous request.\n\nSilakan jelaskan perubahannya / Please describe the changes, e.g.:\n• `"revisi: tambahkan notifikasi Telegram"`\n• `"revise: also send Telegram notification"`'
 				: 'Silakan jelaskan revisi yang diinginkan / Please describe what you want to revise, e.g.:\n• `"revisi workflow email: tambahkan filter subject"`\n• `"revise the workflow: add a Slack notification step"`';
 			void this.sendSimpleAIMessage(user, sessionId, messageId, hint, model);
 			return;
 		}
-
-		// MST: permintaan buat workflow baru → tampilkan tool suggestions dulu, jangan langsung build
-		if (this.mstAgentService.isWorkflowRequest(message)) {
+		if (mstIntentType === 'workflow') {
 			this.mstAgentService.clearPendingWorkflow(sessionId);
 			void this.handleWorkflowDiscovery(user, sessionId, messageId, message, model);
 			return;
+		}
+
+		// Non-MST path: workflow must be ready.
+		if (!workflow) {
+			throw new UnexpectedError('Failed to prepare chat workflow.');
 		}
 
 		const resumed = await this.tryResumeWaitingExecution({
