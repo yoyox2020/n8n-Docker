@@ -133,17 +133,22 @@ export class ChatHubTitleService {
 			workflowData.id,
 		]);
 
+		this.logger.debug(
+			`Title execution ${executionId} status=${execution?.status} hasData=${!!execution?.data}`,
+		);
+
 		if (!execution) {
 			throw new OperationalError(`Could not find execution with ID ${executionId}`);
 		}
 
 		if (!execution.status || execution.status !== 'success') {
-			const message =
-				this.executionService.extractErrorMessage(execution.data) ??
-				'Failed to generate a response';
+			const errMsg = this.executionService.extractErrorMessage(execution.data);
+			this.logger.debug(`Title execution extractErrorMessage result: ${String(errMsg)}`);
+			const message = errMsg ?? 'Failed to generate a response';
 			throw new OperationalError(message);
 		}
 
+		this.logger.debug(`Title execution success, calling extractMessage`);
 		const title = this.executionService.extractMessage(execution, 'lastNode');
 		return title ?? null;
 	}

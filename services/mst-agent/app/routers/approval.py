@@ -9,17 +9,33 @@ Endpoints:
   GET  /approval/user/{user_id} — semua approval pending milik seorang user
 """
 
+import logging
+import uuid
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.models.approval import ApprovalRequest
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/approval", tags=["approval"])
+
+
+class CreateApprovalRequest(BaseModel):
+    user_id: str
+    node_name: str
+    action_description: str
+    risk_level: str = "medium"  # low / medium / high / critical
+    context: dict | None = None
+    execution_id: str | None = None
+    workflow_id: str | None = None
 
 
 class ApprovalStatusResponse(BaseModel):
@@ -40,6 +56,92 @@ class RespondRequest(BaseModel):
     decision: str
     # Catatan opsional dari user (alasan menolak, dll)
     note: str | None = None
+
+
+@router.post("/", response_model=ApprovalStatusResponse, summary="Buat approval request baru")
+async def create_approval(payload: CreateApprovalRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Dipanggil oleh workflow/agent node ketika ingin meminta persetujuan user
+    sebelum melakukan aksi berisiko (kirim email, hapus data, dll).
+    """
+    if payload.risk_level not in ("low", "medium", "high", "critical"):
+        raise HTTPException(status_code=400, detail="risk_level harus: low, medium, high, atau critical")
+
+    approval = ApprovalRequest(
+        id=str(uuid.uuid4()),
+        user_id=payload.user_id,
+        node_name=payload.node_name,
+        action_description=payload.action_description,
+        risk_level=payload.risk_level,
+        context=payload.context,
+        execution_id=payload.execution_id,
+        workflow_id=payload.workflow_id,
+        status="pending",
+    )
+    db.add(approval)
+    await db.commit()
+    await db.refresh(approval)
+
+    # Kirim notifikasi real-time ke chat user via n8n internal endpoint
+    import asyncio
+    asyncio.create_task(_notify_chat(approval))
+
+    return ApprovalStatusResponse(
+        id=approval.id,
+        user_id=approval.user_id,
+        node_name=approval.node_name,
+        action_description=approval.action_description,
+        risk_level=approval.risk_level,
+        status=approval.status,
+        context=approval.context,
+        requested_at=approval.requested_at.isoformat(),
+        responded_at=None,
+        response_note=None,
+    )
+
+
+async def _get_n8n_cookie() -> str | None:
+    """Login ke n8n sebagai admin dan kembalikan cookie session."""
+    if not settings.n8n_admin_email or not settings.n8n_admin_password:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            resp = await client.post(
+                f"{settings.n8n_base_url}/rest/login",
+                json={"emailOrLdapLoginId": settings.n8n_admin_email, "password": settings.n8n_admin_password},
+            )
+            if resp.status_code == 200:
+                return "; ".join(f"{k}={v}" for k, v in resp.cookies.items()) or None
+    except Exception as exc:
+        logger.warning("[ApprovalNotify] Login n8n gagal: %s", exc)
+    return None
+
+
+async def _notify_chat(approval: ApprovalRequest) -> None:
+    """Push notifikasi approval ke chat session user via n8n internal API."""
+    cookie = await _get_n8n_cookie()
+    if not cookie:
+        logger.warning("[ApprovalNotify] Tidak bisa login ke n8n, skip notifikasi")
+        return
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(
+                f"{settings.n8n_base_url}/rest/chat/approval-notify",
+                headers={"Cookie": cookie, "Content-Type": "application/json"},
+                json={
+                    "user_id": approval.user_id,
+                    "id": approval.id,
+                    "node_name": approval.node_name,
+                    "action_description": approval.action_description,
+                    "risk_level": approval.risk_level,
+                },
+            )
+            if resp.status_code == 200:
+                logger.info("[ApprovalNotify] ✅ Notifikasi terkirim ke chat user %s", approval.user_id)
+            else:
+                logger.warning("[ApprovalNotify] n8n balas %d: %s", resp.status_code, resp.text[:100])
+    except Exception as exc:
+        logger.warning("[ApprovalNotify] Gagal notifikasi: %s", exc)
 
 
 @router.get("/{approval_id}", response_model=ApprovalStatusResponse, summary="Cek status approval")

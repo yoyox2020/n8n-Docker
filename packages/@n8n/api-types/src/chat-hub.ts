@@ -425,7 +425,7 @@ export class ChatHubUpdateConversationRequest extends Z.class({
 	agent: z
 		.object({
 			model: chatHubConversationModelSchema,
-			name: z.string(),
+			name: z.string().optional(),
 		})
 		.optional(),
 	toolIds: z.array(z.string().uuid()).optional(),

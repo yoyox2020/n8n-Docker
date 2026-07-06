@@ -188,6 +188,8 @@ export class OwnershipService {
 		for (const sharedEntity of shared) {
 			const { project, role } = sharedEntity;
 
+			if (!project) continue;
+
 			if (role === 'credential:owner' || role === 'workflow:owner') {
 				entity.homeProject = {
 					id: project.id,

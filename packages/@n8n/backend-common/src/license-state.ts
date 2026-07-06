@@ -171,15 +171,15 @@ export class LicenseState {
 	}
 
 	isInsightsSummaryLicensed() {
-		return this.isLicensed('feat:insights:viewSummary');
+		return true; // fork: aktifkan insights tanpa license
 	}
 
 	isInsightsDashboardLicensed() {
-		return this.isLicensed('feat:insights:viewDashboard');
+		return true; // fork: aktifkan insights tanpa license
 	}
 
 	isInsightsHourlyDataLicensed() {
-		return this.isLicensed('feat:insights:viewHourlyData');
+		return true; // fork: aktifkan insights tanpa license
 	}
 
 	isWorkflowDiffsLicensed() {
@@ -219,7 +219,7 @@ export class LicenseState {
 	}
 
 	getInsightsMaxHistory() {
-		return this.getValue('quota:insights:maxHistoryDays') ?? 7;
+		return -1; // fork: unlimited history
 	}
 
 	getInsightsRetentionMaxAge() {

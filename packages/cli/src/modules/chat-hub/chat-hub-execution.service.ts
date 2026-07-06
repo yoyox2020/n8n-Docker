@@ -119,7 +119,10 @@ export class ChatHubExecutionService {
 				pushRef,
 			);
 		} catch (error) {
-			this.logger.error(`Error in chat execution: ${error}`);
+			this.logger.error(`Error in chat execution: ${error}`, {
+				stack: error instanceof Error ? error.stack : undefined,
+				errorType: error === null ? 'null' : error === undefined ? 'undefined' : typeof error,
+			});
 
 			const errorMessageId = uuidv4();
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -687,17 +690,27 @@ export class ChatHubExecutionService {
 	/**
 	 * Extract error message from run data
 	 */
-	extractErrorMessage(runData: IRunExecutionData): string | undefined {
+	extractErrorMessage(runData: IRunExecutionData | null | undefined): string | undefined {
+		if (!runData?.resultData) return undefined;
 		const { error, runData: nodeRunData } = runData.resultData;
 
 		if (error) {
+			this.logger.debug(
+				`extractErrorMessage top-level error: desc=${String(error.description)} msg=${String(error.message)}`,
+			);
 			return error.description ?? error.message;
 		}
 
 		for (const nodeRuns of Object.values(nodeRunData ?? {})) {
-			for (const nodeRun of nodeRuns) {
-				if (nodeRun.error) {
-					return nodeRun.error.description ?? nodeRun.error.message;
+			for (const nodeRun of nodeRuns ?? []) {
+				if (nodeRun?.error) {
+					this.logger.debug(
+						`extractErrorMessage node error type=${typeof nodeRun.error} desc=${String((nodeRun.error as { description?: unknown }).description)} msg=${String((nodeRun.error as { message?: unknown }).message)}`,
+					);
+					return (
+						(nodeRun.error as { description?: string; message?: string }).description ??
+						(nodeRun.error as { description?: string; message?: string }).message
+					);
 				}
 			}
 		}

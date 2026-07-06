@@ -199,6 +199,10 @@ export class LmChatMistikaAi implements INodeType {
 			apiKey: raw.apiKey,
 			model: modelName || 'deepseek/deepseek-v4-flash',
 			...options,
+			// -1 means "no limit" — don't send the param at all (some APIs reject negative values)
+			maxTokens: options.maxTokens === -1 ? undefined : options.maxTokens,
+			// Force non-streaming for non-standard endpoints; their SSE format may differ from OpenAI spec
+			streaming: chatPath === '/chat/completions',
 			timeout,
 			maxRetries: options.maxRetries ?? 2,
 			configuration,

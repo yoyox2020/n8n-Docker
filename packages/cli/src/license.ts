@@ -310,7 +310,7 @@ export class License implements LicenseProvider {
 
 	/** @deprecated Use `LicenseState.isAdvancedPermissionsLicensed` instead. */
 	isAdvancedPermissionsLicensed() {
-		return this.isLicensed(LICENSE_FEATURES.ADVANCED_PERMISSIONS);
+		return true; // fork: aktifkan admin role tanpa license
 	}
 
 	/** @deprecated Use `LicenseState.isDebugInEditorLicensed` instead. */

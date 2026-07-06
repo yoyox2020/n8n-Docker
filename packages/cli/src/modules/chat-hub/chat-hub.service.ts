@@ -344,7 +344,7 @@ export class ChatHubService {
 
 			await this.ensureValidModel(user, model, false);
 
-			sessionUpdates.agentName = updates.agent.name;
+			sessionUpdates.agentName = updates.agent.name ?? '';
 			sessionUpdates.provider = model.provider;
 			sessionUpdates.model = null;
 			sessionUpdates.credentialId = null;
@@ -427,6 +427,43 @@ export class ChatHubService {
 					'Chat trigger not found in workflow for chat session initialization',
 				);
 			}
+		}
+	}
+
+	/** Kirim pesan teks sederhana dari AI tanpa menjalankan workflow. */
+	private async sendSimpleAIMessage(
+		user: User,
+		sessionId: ChatSessionId,
+		previousMessageId: ChatMessageId,
+		content: string,
+		model: ChatHubConversationModel,
+	): Promise<void> {
+		const { v4: uuidv4 } = await import('uuid');
+		const aiMessageId = uuidv4() as ChatMessageId;
+		try {
+			await this.chatStreamService.startExecution(user.id, sessionId);
+			await this.chatStreamService.startStream({
+				userId: user.id,
+				sessionId,
+				messageId: aiMessageId,
+				previousMessageId,
+				retryOfMessageId: null,
+				executionId: null,
+			});
+			await this.messageRepository.createAIMessage({
+				id: aiMessageId,
+				sessionId,
+				previousMessageId,
+				content,
+				model,
+				retryOfMessageId: null,
+				status: 'success',
+			});
+			await this.chatStreamService.sendChunk(sessionId, aiMessageId, content);
+			await this.chatStreamService.endStream(sessionId, aiMessageId, 'success');
+			await this.chatStreamService.endExecution(user.id, sessionId, 'success');
+		} catch {
+			// stream mungkin sudah tertutup
 		}
 	}
 
@@ -555,9 +592,50 @@ export class ChatHubService {
 			})),
 		});
 
-		// MST: intercept workflow creation requests — call Agent Service instead of LLM
+		// MST: cek dulu apakah pesan adalah respons approval ("setuju <id>" / "tolak <id>")
+		const approvalParse = this.mstAgentService.parseApprovalResponse(message);
+		if (approvalParse.isApproval) {
+			void this.handleApprovalResponse(
+				user,
+				sessionId,
+				messageId,
+				approvalParse.id,
+				approvalParse.decision,
+				model,
+			);
+			return;
+		}
+		// User ketik "setuju"/"tolak" tanpa ID — beri petunjuk
+		if (!approvalParse.isApproval && approvalParse.hint) {
+			void this.sendSimpleAIMessage(user, sessionId, messageId, approvalParse.hint, model);
+			return;
+		}
+
+		// MST: user konfirmasi ("lanjut", "ya", "oke") setelah melihat tool suggestions
+		if (
+			this.mstAgentService.hasPendingWorkflow(sessionId) &&
+			this.mstAgentService.isConfirmation(message)
+		) {
+			const pending = this.mstAgentService.popPendingWorkflow(sessionId);
+			if (pending) {
+				void this.handleAgentWorkflowRequest(user, sessionId, messageId, pending.prompt, model);
+				return;
+			}
+		}
+
+		// MST: user mengetik "revisi" / "ubah" / "revise" / "modify" singkat tanpa detail — minta penjelasan
+		if (this.mstAgentService.isRevisionRequest(message)) {
+			const hint = this.mstAgentService.hasPendingWorkflow(sessionId)
+				? 'Anda ingin merevisi permintaan sebelumnya / You want to revise the previous request.\n\nSilakan jelaskan perubahannya / Please describe the changes, e.g.:\n• `"revisi: tambahkan notifikasi Telegram"`\n• `"revise: also send Telegram notification"`'
+				: 'Silakan jelaskan revisi yang diinginkan / Please describe what you want to revise, e.g.:\n• `"revisi workflow email: tambahkan filter subject"`\n• `"revise the workflow: add a Slack notification step"`';
+			void this.sendSimpleAIMessage(user, sessionId, messageId, hint, model);
+			return;
+		}
+
+		// MST: permintaan buat workflow baru → tampilkan tool suggestions dulu, jangan langsung build
 		if (this.mstAgentService.isWorkflowRequest(message)) {
-			void this.handleAgentWorkflowRequest(user, sessionId, messageId, message, model);
+			this.mstAgentService.clearPendingWorkflow(sessionId);
+			void this.handleWorkflowDiscovery(user, sessionId, messageId, message, model);
 			return;
 		}
 
@@ -588,6 +666,130 @@ export class ChatHubService {
 	}
 
 	/**
+	 * Tampilkan tool/node yang relevan untuk permintaan workflow user.
+	 * Simpan prompt ke pending state — ketika user konfirmasi, baru build workflow-nya.
+	 */
+	private async handleWorkflowDiscovery(
+		user: User,
+		sessionId: ChatSessionId,
+		previousMessageId: ChatMessageId,
+		message: string,
+		model: ChatHubConversationModel,
+	): Promise<void> {
+		const { v4: uuidv4 } = await import('uuid');
+		const aiMessageId = uuidv4() as ChatMessageId;
+
+		try {
+			await this.chatStreamService.startExecution(user.id, sessionId);
+			await this.chatStreamService.startStream({
+				userId: user.id,
+				sessionId,
+				messageId: aiMessageId,
+				previousMessageId,
+				retryOfMessageId: null,
+				executionId: null,
+			});
+
+			const suggestions = await this.mstAgentService.suggestTools(message);
+			const content = this.mstAgentService.formatToolSuggestions(suggestions);
+
+			// Simpan prompt agar bisa dibangun saat user konfirmasi
+			this.mstAgentService.savePendingWorkflow(sessionId, message, user.id);
+
+			await this.messageRepository.createAIMessage({
+				id: aiMessageId,
+				sessionId,
+				previousMessageId,
+				content,
+				model,
+				retryOfMessageId: null,
+				status: 'success',
+			});
+			await this.chatStreamService.sendChunk(sessionId, aiMessageId, content);
+			await this.chatStreamService.endStream(sessionId, aiMessageId, 'success');
+			await this.chatStreamService.endExecution(user.id, sessionId, 'success');
+		} catch (error) {
+			// Jika tool suggestion gagal, langsung build tanpa preview
+			this.logger.warn(
+				`[ChatHub] suggestTools gagal, fallback ke direct build: ${error instanceof Error ? error.message : String(error)}`,
+			);
+			this.mstAgentService.clearPendingWorkflow(sessionId);
+			void this.handleAgentWorkflowRequest(user, sessionId, previousMessageId, message, model);
+		}
+	}
+
+	/**
+	 * Handle user's approval response ("setuju <id>" / "tolak <id>") from chat.
+	 * Calls agent service to record the decision and informs user of the result.
+	 */
+	private async handleApprovalResponse(
+		user: User,
+		sessionId: ChatSessionId,
+		previousMessageId: ChatMessageId,
+		approvalId: string,
+		decision: 'approved' | 'rejected',
+		model: ChatHubConversationModel,
+	): Promise<void> {
+		const { v4: uuidv4 } = await import('uuid');
+		const aiMessageId = uuidv4() as ChatMessageId;
+
+		try {
+			await this.chatStreamService.startExecution(user.id, sessionId);
+			await this.chatStreamService.startStream({
+				userId: user.id,
+				sessionId,
+				messageId: aiMessageId,
+				previousMessageId,
+				retryOfMessageId: null,
+				executionId: null,
+			});
+
+			const approval = await this.mstAgentService.respondApproval(approvalId, decision);
+			const icon = decision === 'approved' ? '✅' : '❌';
+			const label = decision === 'approved' ? 'Disetujui' : 'Ditolak';
+			const content = [
+				`${icon} **${label}**`,
+				'',
+				`**${approval.node_name}** — ${approval.action_description}`,
+				`Keputusan: **${decision === 'approved' ? 'Setuju' : 'Tolak'}**`,
+			].join('\n');
+
+			await this.messageRepository.createAIMessage({
+				id: aiMessageId,
+				sessionId,
+				previousMessageId,
+				content,
+				model,
+				retryOfMessageId: null,
+				status: 'success',
+			});
+			await this.chatStreamService.sendChunk(sessionId, aiMessageId, content);
+			await this.chatStreamService.endStream(sessionId, aiMessageId, 'success');
+			await this.chatStreamService.endExecution(user.id, sessionId, 'success');
+		} catch (error) {
+			const errorMsg = error instanceof Error ? error.message : 'Gagal memproses approval';
+			this.logger.error(`Approval response failed: ${errorMsg}`);
+			const errContent = `Maaf, gagal memproses keputusan approval.\n\n_Error: ${errorMsg}_`;
+			try {
+				await this.messageRepository.createAIMessage({
+					id: aiMessageId,
+					sessionId,
+					previousMessageId,
+					content: errContent,
+					model,
+					retryOfMessageId: null,
+					status: 'error',
+				});
+				await this.chatStreamService.sendChunk(sessionId, aiMessageId, errContent);
+				await this.chatStreamService.endStream(sessionId, aiMessageId, 'error');
+			} catch {
+				/* stream sudah tertutup */
+			}
+			await this.chatStreamService.endExecution(user.id, sessionId, 'error');
+		}
+	}
+
+	/**
 	 * Route workflow creation requests to the MST Agent Service.
 	 * Called when user message matches workflow building keywords.
 	 */
@@ -613,7 +815,17 @@ export class ChatHubService {
 			});
 
 			const result = await this.mstAgentService.buildWorkflow(message, user.id, sessionId);
-			const content = this.mstAgentService.formatResponse(result);
+			let content = this.mstAgentService.formatResponse(result);
+
+			// Jika ada approval pending, tampilkan notifikasinya sekalian dalam respons ini
+			try {
+				const pendingApprovals = await this.mstAgentService.listPendingApprovals(user.id);
+				if (pendingApprovals.length > 0) {
+					content += this.mstAgentService.formatApprovalNotification(pendingApprovals);
+				}
+			} catch {
+				/* notifikasi approval bersifat opsional, jangan ganggu alur utama */
+			}
 
 			await this.messageRepository.createAIMessage({
 				id: aiMessageId,
@@ -633,7 +845,11 @@ export class ChatHubService {
 			this.logger.error(`Agent workflow request failed: ${errorMsg}`);
 
 			// Kirim pesan error ke user supaya chat tidak menggantung
-			const errContent = `Maaf, gagal membuat workflow. Silakan coba lagi.\n\n_Error: ${errorMsg}_`;
+			// Jika pesan sudah ramah (dari agent service), tampilkan langsung.
+			// Jika pesan teknis, bungkus dengan kalimat yang lebih ramah.
+			const errContent = errorMsg.startsWith('Maaf,')
+				? errorMsg
+				: `Maaf, gagal membuat workflow. Silakan coba lagi.\n\n_Error: ${errorMsg}_`;
 			try {
 				await this.messageRepository.createAIMessage({
 					id: aiMessageId,
@@ -651,6 +867,88 @@ export class ChatHubService {
 			}
 
 			await this.chatStreamService.endExecution(user.id, sessionId, 'error');
+		}
+	}
+
+	/**
+	 * Kirim notifikasi approval ke chat session terakhir user.
+	 * Dipanggil oleh internal endpoint saat Python agent membuat approval request baru.
+	 */
+	async notifyApprovalInChat(
+		userId: string,
+		approval: {
+			id: string;
+			node_name: string;
+			action_description: string;
+			risk_level: string;
+		},
+	): Promise<void> {
+		// Ambil SEMUA sesi user (bukan hanya 1) agar notifikasi sampai ke semua tab/sesi aktif
+		const sessions = await this.sessionRepository.getManyByUserId(userId, 10);
+		if (sessions.length === 0) {
+			this.logger.debug(`[ApprovalNotify] Tidak ada session untuk user ${userId}`);
+			return;
+		}
+
+		const model: ChatHubConversationModel = { provider: 'mistikaAi', model: 'mst-agent' };
+		const { v4: uuidv4 } = await import('uuid');
+		const riskEmoji: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' };
+		const emoji = riskEmoji[approval.risk_level.toLowerCase()] ?? '🟡';
+
+		const content = [
+			`🔔 **Approval Dibutuhkan**`,
+			``,
+			`Node **${approval.node_name}** meminta izin untuk:`,
+			`> ${approval.action_description}`,
+			``,
+			`${emoji} Risiko: **${approval.risk_level.toUpperCase()}**`,
+			``,
+			`Balas dengan:`,
+			`• \`setuju ${approval.id}\` — untuk menyetujui`,
+			`• \`tolak ${approval.id}\` — untuk menolak`,
+		].join('\n');
+
+		// Kirim ke semua sesi — pesan AI hanya disimpan ke DB sekali (sesi pertama),
+		// stream SSE dikirim ke semua sesi agar semua tab aktif menerima notifikasi
+		let messageSavedToDb = false;
+		for (const session of sessions) {
+			const sessionId = session.id as ChatSessionId;
+			try {
+				const sessionMessages = await this.messageRepository.getManyBySessionId(sessionId);
+				const previousMessageId = (sessionMessages.at(-1)?.id ?? null) as ChatMessageId | null;
+				const aiMessageId = uuidv4() as ChatMessageId;
+
+				await this.chatStreamService.startExecution(userId, sessionId);
+				await this.chatStreamService.startStream({
+					userId,
+					sessionId,
+					messageId: aiMessageId,
+					previousMessageId,
+					retryOfMessageId: null,
+					executionId: null,
+				});
+
+				// Simpan pesan AI ke DB hanya untuk sesi pertama agar tidak duplikat di history
+				if (!messageSavedToDb) {
+					await this.messageRepository.createAIMessage({
+						id: aiMessageId,
+						sessionId,
+						previousMessageId,
+						content,
+						model,
+						retryOfMessageId: null,
+						status: 'success',
+					});
+					messageSavedToDb = true;
+				}
+
+				await this.chatStreamService.sendChunk(sessionId, aiMessageId, content);
+				await this.chatStreamService.endStream(sessionId, aiMessageId, 'success');
+				await this.chatStreamService.endExecution(userId, sessionId, 'success');
+				this.logger.info(`[ApprovalNotify] Notifikasi dikirim ke session ${sessionId}`);
+			} catch (err) {
+				this.logger.error(`[ApprovalNotify] Gagal kirim ke session ${session.id}: ${err}`);
+			}
 		}
 	}
 

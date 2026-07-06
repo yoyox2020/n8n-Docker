@@ -64,6 +64,38 @@ export class ChatHubController {
 		private readonly chatAttachmentService: ChatHubAttachmentService,
 	) {}
 
+	/**
+	 * Internal endpoint — dipanggil oleh mst-agent Python (login sebagai admin) saat approval baru dibuat.
+	 * Menggunakan session auth yang sama dengan endpoint chat lainnya.
+	 */
+	@Post('/approval-notify')
+	@GlobalScope('chatHub:message')
+	async approvalNotify(req: AuthenticatedRequest): Promise<{ ok: boolean }> {
+		const body = req.body as {
+			user_id?: string;
+			id?: string;
+			node_name?: string;
+			action_description?: string;
+			risk_level?: string;
+		};
+		if (
+			!body?.user_id ||
+			!body?.id ||
+			!body?.node_name ||
+			!body?.action_description ||
+			!body?.risk_level
+		) {
+			return { ok: false };
+		}
+		void this.chatService.notifyApprovalInChat(body.user_id, {
+			id: body.id,
+			node_name: body.node_name,
+			action_description: body.action_description,
+			risk_level: body.risk_level,
+		});
+		return { ok: true };
+	}
+
 	@Post('/models')
 	@GlobalScope('chatHub:message')
 	async getModels(

@@ -38,11 +38,16 @@ Write-Host "  Copied: node-definitions" -ForegroundColor Gray
 docker cp "$NodesBase\package.json" "${ContainerName}:${ContainerBase}/package.json"
 Write-Host "  Copied: package.json" -ForegroundColor Gray
 
-# Copy chat-hub services (termasuk misikaAi provider fix)
+# Copy chat-hub services (termasuk misikaAi provider fix + auto-provisioning)
 $chatHubFiles = @(
     "chat-hub-workflow.service.js",
     "chat-hub.service.js",
-    "mst-agent.service.js"
+    "chat-hub-execution.service.js",
+    "chat-hub-title.service.js",
+    "mst-agent.service.js",
+    "chat-hub.module.js",
+    "mistika-credential-provision.service.js",
+    "chat-hub.models.service.js"
 )
 foreach ($f in $chatHubFiles) {
     $src = "$CliDist\modules\chat-hub\$f"
@@ -50,6 +55,14 @@ foreach ($f in $chatHubFiles) {
         docker cp $src "${ContainerName}:${ContainerCli}/modules/chat-hub/$f"
         Write-Host "  Copied: $f" -ForegroundColor Gray
     }
+}
+
+# Copy @n8n/api-types dist (fix ChatHubUpdateConversationRequest schema: name optional)
+$apiTypesDist = "$RepoRoot\packages\@n8n\api-types\dist"
+$apiTypesContainer = "/usr/local/lib/node_modules/n8n/node_modules/.pnpm/@n8n+api-types@file+packages+@n8n+api-types_zod@3.25.67/node_modules/@n8n/api-types/dist"
+if (Test-Path $apiTypesDist) {
+    docker cp "$apiTypesDist\." "${ContainerName}:${apiTypesContainer}"
+    Write-Host "  Copied: @n8n/api-types dist" -ForegroundColor Gray
 }
 
 # Copy LmChatMistikaAi node (fix auth header x-api-key + URL rewrite + model fallback)
@@ -66,6 +79,37 @@ if (Test-Path $misikaCredSrc) {
     docker exec -u root $ContainerName mkdir -p "$langchainDest/dist/credentials"
     docker cp $misikaCredSrc "${ContainerName}:${langchainDest}/dist/credentials/MistikaAiApi.credentials.js"
     Write-Host "  Copied: MistikaAiApi.credentials.js" -ForegroundColor Gray
+}
+
+# Copy types/credentials.json dan known/credentials.json (schema credential untuk UI)
+$credTypesJson = "$langchainSrc\types\credentials.json"
+$credKnownJson = "$langchainSrc\known\credentials.json"
+if (Test-Path $credTypesJson) {
+    docker cp $credTypesJson "${ContainerName}:${langchainDest}/dist/types/credentials.json"
+    Write-Host "  Copied: types/credentials.json" -ForegroundColor Gray
+}
+if (Test-Path $credKnownJson) {
+    docker cp $credKnownJson "${ContainerName}:${langchainDest}/dist/known/credentials.json"
+    Write-Host "  Copied: known/credentials.json" -ForegroundColor Gray
+}
+
+# Copy frontend (editor-ui) build
+$frontendSrc = "$RepoRoot\packages\frontend\editor-ui\dist"
+$frontendDest = "/usr/local/lib/node_modules/n8n/node_modules/n8n-editor-ui/dist"
+if (Test-Path $frontendSrc) {
+    docker cp "$frontendSrc\." "${ContainerName}:${frontendDest}"
+    Write-Host "  Copied: frontend editor-ui" -ForegroundColor Gray
+}
+
+# Hapus cache credential agar schema terbaru dibaca
+docker exec -u root $ContainerName rm -f /home/node/.cache/n8n/public/types/credentials.json
+Write-Host "  Cleared: credential type cache" -ForegroundColor Gray
+
+# Copy workflow-runner.js (fix processError null/undefined crash)
+$workflowRunnerSrc = "$CliDist\workflow-runner.js"
+if (Test-Path $workflowRunnerSrc) {
+    docker cp $workflowRunnerSrc "${ContainerName}:${ContainerCli}/workflow-runner.js"
+    Write-Host "  Copied: workflow-runner.js" -ForegroundColor Gray
 }
 
 # Restart container

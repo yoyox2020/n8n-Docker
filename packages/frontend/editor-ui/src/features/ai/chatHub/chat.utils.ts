@@ -144,7 +144,8 @@ export function unflattenModel(messageOrSession: FlattenedModel): ChatHubConvers
 				workflowId: messageOrSession.workflowId,
 			};
 		default:
-			if (messageOrSession.model === null) {
+			// Treat null, undefined (JS), and the literal string 'undefined' as missing
+			if (!messageOrSession.model || messageOrSession.model === 'undefined') {
 				return null;
 			}
 
@@ -202,6 +203,12 @@ export function fromStringToModel(value: string): ChatHubConversationModel | und
 	const parsedProvider = chatHubProviderSchema.safeParse(provider).data;
 
 	if (!parsedProvider) {
+		return undefined;
+	}
+
+	// LLM providers require a model ID after '::'. A bare provider string like 'mistikaAi'
+	// (without '::model') means a group label was clicked, not an actual model.
+	if (parsedProvider !== 'n8n' && parsedProvider !== 'custom-agent' && !identifier) {
 		return undefined;
 	}
 
