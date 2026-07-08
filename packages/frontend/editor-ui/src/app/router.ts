@@ -1168,6 +1168,11 @@ router.beforeEach(async (to: RouteLocationNormalized, from, next) => {
 		} else {
 			console.error(failure);
 		}
+		// Fallback: prevent blank screen — redirect to signin (or allow if already there)
+		if (to.name !== VIEWS.SIGNIN) {
+			return next({ name: VIEWS.SIGNIN });
+		}
+		return next();
 	}
 });
 

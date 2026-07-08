@@ -1,0 +1,37 @@
+docker exec phase-0-postgres-1 psql -U n8n -d agentdb -c "
+SELECT COUNT(*) as total_node,
+       array_length(embedding,1) as dimensi_vektor,
+       MAX(updated_at) as terakhir_update
+FROM node_embeddings
+GROUP BY array_length(embedding,1);
+" 2>&1
+docker exec phase-0-postgres-1 psql -U n8n -d agentdb -c "
+SELECT node_type, display_name
+FROM node_embeddings
+WHERE display_name ILIKE '%service%' OR display_name ILIKE '%ticket%'
+ORDER BY display_name LIMIT 15;" 2>&1
+
+
+# Lihat semua node
+docker exec phase-0-postgres-1 psql -U n8n -d agentdb -c "SELECT node_type, display_name FROM node_embeddings ORDER BY display_name;"
+
+# Cari node slack/email
+docker exec phase-0-postgres-1 psql -U n8n -d agentdb -c "SELECT node_type, display_name FROM node_embeddings WHERE display_name ILIKE '%slack%' OR display_name ILIKE '%email%';"
+
+# Ukuran vektor
+docker exec phase-0-postgres-1 psql -U n8n -d agentdb -c "SELECT node_type, array_length(embedding,1) as dim FROM node_embeddings LIMIT 5;"
+
+
+# Lihat semua node
+docker exec phase-0-postgres-1 psql -U n8n -d agentdb -c "SELECT node_type, display_name FROM node_embeddings ORDER BY display_name;"
+
+# Cari node slack/email
+docker exec phase-0-postgres-1 psql -U n8n -d agentdb -c "SELECT node_type, display_name FROM node_embeddings WHERE display_name ILIKE '%slack%' OR display_name ILIKE '%email%';"
+
+# Ukuran vektor
+docker exec phase-0-postgres-1 psql -U n8n -d agentdb -c "SELECT node_type, array_length(embedding,1) as dim FROM node_embeddings LIMIT 5;"
+
+
+
+cek health
+curl -s http://localhost:8001/health 2>&1

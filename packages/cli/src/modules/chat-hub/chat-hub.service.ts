@@ -565,7 +565,13 @@ export class ChatHubService {
 					mstIntentType = 'confirm';
 					return { workflow: null, previousMessage };
 				}
-				if (this.mstAgentService.isRevisionRequest(message)) {
+				// Hanya tafsirkan sebagai "revisi workflow" jika memang ada workflow pending di sesi ini —
+				// tanpa syarat ini, pesan pendek biasa ("ubah", "update", "fix", dll) yang tidak
+				// terkait workflow ikut kepotong dan dibalas template revisi, bukan dijawab oleh model.
+				if (
+					this.mstAgentService.hasPendingWorkflow(sessionId) &&
+					this.mstAgentService.isRevisionRequest(message)
+				) {
 					mstIntentType = 'revision';
 					return { workflow: null, previousMessage };
 				}
@@ -799,7 +805,8 @@ export class ChatHubService {
 		} catch (error) {
 			const errorMsg = error instanceof Error ? error.message : 'Gagal memproses approval';
 			this.logger.error(`Approval response failed: ${errorMsg}`);
-			const errContent = `Maaf, gagal memproses keputusan approval.\n\n_Error: ${errorMsg}_`;
+			const errContent =
+				'Maaf, persetujuan tidak dapat diproses saat ini. Silakan coba ulangi perintah Anda sebentar lagi.';
 			try {
 				await this.messageRepository.createAIMessage({
 					id: aiMessageId,
@@ -815,7 +822,10 @@ export class ChatHubService {
 			} catch {
 				/* stream sudah tertutup */
 			}
-			await this.chatStreamService.endExecution(user.id, sessionId, 'error');
+			// 'success' di sini bukan salah ketik: bubble sudah ditandai error via endStream() di atas.
+			// endExecution('error') berarti "seluruh pipeline streaming gagal" dan memicu toast generic
+			// "Unknown error" di browser meski pesan errornya sudah tersampaikan dengan jelas ke user.
+			await this.chatStreamService.endExecution(user.id, sessionId, 'success');
 		}
 	}
 
@@ -874,12 +884,13 @@ export class ChatHubService {
 			const errorMsg = error instanceof Error ? error.message : 'Failed to build workflow';
 			this.logger.error(`Agent workflow request failed: ${errorMsg}`);
 
-			// Kirim pesan error ke user supaya chat tidak menggantung
-			// Jika pesan sudah ramah (dari agent service), tampilkan langsung.
-			// Jika pesan teknis, bungkus dengan kalimat yang lebih ramah.
-			const errContent = errorMsg.startsWith('Maaf,')
-				? errorMsg
-				: `Maaf, gagal membuat workflow. Silakan coba lagi.\n\n_Error: ${errorMsg}_`;
+			const errContent = [
+				'Mohon perbaiki permintaan workflow Anda. Coba jelaskan dengan lebih spesifik apa yang ingin diotomasi, misalnya:',
+				'',
+				'> "Buatkan workflow untuk mengirim laporan via email setiap Senin pagi"',
+				'',
+				'Jika masalah berlanjut, sampaikan ulang dengan kata yang berbeda.',
+			].join('\n');
 			try {
 				await this.messageRepository.createAIMessage({
 					id: aiMessageId,
@@ -896,7 +907,10 @@ export class ChatHubService {
 				// Jika stream sudah tertutup, abaikan
 			}
 
-			await this.chatStreamService.endExecution(user.id, sessionId, 'error');
+			// 'success' di sini bukan salah ketik: bubble sudah ditandai error via endStream() di atas.
+			// endExecution('error') berarti "seluruh pipeline streaming gagal" dan memicu toast generic
+			// "Unknown error" di browser meski pesan errornya sudah tersampaikan dengan jelas ke user.
+			await this.chatStreamService.endExecution(user.id, sessionId, 'success');
 		}
 	}
 
