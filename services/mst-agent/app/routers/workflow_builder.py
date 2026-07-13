@@ -380,7 +380,7 @@ async def build_workflow(payload: BuildWorkflowRequest, db: AsyncSession = Depen
             session_id=payload.session_id,
             workflow_id=workflow_id,
             workflow_name=workflow_name,
-            workflow_url=f"{settings.n8n_base_url}/workflow/{workflow_id}",
+            workflow_url=f"{settings.n8n_public_url}/workflow/{workflow_id}",
             steps=task_graph,
             original_prompt=payload.prompt,
         )
@@ -405,7 +405,7 @@ async def build_workflow(payload: BuildWorkflowRequest, db: AsyncSession = Depen
         message=f"Workflow berhasil dibuat! Berisi {len(task_graph)} langkah.",
         workflow_name=workflow_name,
         workflow_id=workflow_id,
-        workflow_url=f"{settings.n8n_base_url}/workflow/{workflow_id}",
+        workflow_url=f"{settings.n8n_public_url}/workflow/{workflow_id}",
         steps=steps,
     )
 
@@ -738,7 +738,7 @@ async def build_agent_workflow(
             session_id=session_id,
             workflow_id=workflow_id,
             workflow_name=workflow_name,
-            workflow_url=f"{settings.n8n_base_url}/workflow/{workflow_id}",
+            workflow_url=f"{settings.n8n_public_url}/workflow/{workflow_id}",
             steps=[trigger] + tools + [output],
             original_prompt=prompt,
         )
@@ -759,6 +759,6 @@ async def build_agent_workflow(
         message=f"AI Agent workflow berhasil dibuat! Trigger: {trigger['display_name']}, Tool: {len(tools)} node.",
         workflow_name=workflow_name,
         workflow_id=workflow_id,
-        workflow_url=f"{settings.n8n_base_url}/workflow/{workflow_id}",
+        workflow_url=f"{settings.n8n_public_url}/workflow/{workflow_id}",
         steps=all_steps,
     )

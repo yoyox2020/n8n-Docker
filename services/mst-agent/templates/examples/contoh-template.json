@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "name": "Reminder Meeting via Telegram",
+    "description_id": "Kirim pengingat meeting ke peserta lewat Telegram beberapa menit sebelum jadwal dimulai",
+    "description_en": "Sends a meeting reminder to attendees via Telegram a few minutes before the scheduled time",
+    "category": "notification",
+    "tags": ["telegram", "reminder", "calendar", "meeting"],
+    "source_url": "https://github.com/contoh/n8n-templates/blob/main/telegram-meeting-reminder.json"
+  },
+  "workflow": {
+    "name": "Reminder Meeting via Telegram",
+    "nodes": [
+      {
+        "id": "1",
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1.1,
+        "position": [240, 300],
+        "parameters": {
+          "updates": ["message"]
+        }
+      },
+      {
+        "id": "2",
+        "name": "Send Reminder",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [460, 300],
+        "parameters": {
+          "chatId": "={{ $json.message.chat.id }}",
+          "text": "Reminder: meeting Anda akan dimulai sebentar lagi."
+        }
+      }
+    ],
+    "connections": {
+      "Telegram Trigger": {
+        "main": [
+          [
+            { "node": "Send Reminder", "type": "main", "index": 0 }
+          ]
+        ]
+      }
+    }
+  }
+}

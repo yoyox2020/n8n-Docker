@@ -21,12 +21,18 @@ class Settings(BaseSettings):
     # PostgreSQL — shared with n8n instance
     database_url: str  # postgresql+asyncpg://user:pass@postgres:5432/n8n
 
-    # n8n
+    # n8n — dipakai untuk panggilan API antar-container (login, buat workflow, dll).
+    # Harus nama service Docker (mis. http://n8n:5678), BUKAN localhost — container
+    # ini tidak bisa resolve "localhost" ke container n8n.
     n8n_base_url: str = "http://n8n:5678"
     n8n_api_key: str = ""
     # Dipakai nodes_registry untuk login dan fetch daftar node lengkap
     n8n_admin_email: str = ""
     n8n_admin_password: str = ""
+    # URL yang bisa diakses browser user — dipakai untuk membangun link "Buka Workflow".
+    # Beda dari n8n_base_url karena user browsing dari luar jaringan Docker.
+    # Ganti ke domain publik/custom domain saat production.
+    n8n_public_url: str = "http://localhost:5678"
 
     # Service
     agent_port: int = 8000
