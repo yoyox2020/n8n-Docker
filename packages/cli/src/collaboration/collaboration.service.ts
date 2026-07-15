@@ -375,7 +375,7 @@ export class CollaborationService {
 		if (lock.userId === userId) {
 			// Same user, different tab
 			throw new ConflictError(
-				`Cannot ${action} workflow - you have this workflow open in another tab`,
+				`Cannot ${action} workflow - another session with your account is currently active on this workflow`,
 			);
 		} else {
 			// Different user

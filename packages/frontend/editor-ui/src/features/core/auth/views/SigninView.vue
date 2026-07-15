@@ -120,6 +120,19 @@ const login = async (form: LoginRequestDto) => {
 		});
 
 		if (!showMfaView.value) {
+			// Rate limiter (login dibatasi 5x/menit per email) tidak selalu membalas JSON,
+			// jadi status 429-nya dicek dari dua kemungkinan bentuk error sekaligus.
+			if (error.httpStatusCode === 429 || error.response?.status === 429) {
+				toast.showMessage({
+					type: 'error',
+					title: 'Terlalu banyak percobaan masuk',
+					message:
+						'Waktu percobaan masuk Anda telah habis. Silakan tunggu 1 menit, lalu coba lagi.',
+				});
+				loading.value = false;
+				return;
+			}
+
 			toast.showError(error, locale.baseText('auth.signin.error'));
 			loading.value = false;
 			return;
